@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DRUMEO AL-BALAD — 3-Month Metal &amp; 2000s Drum Teaching System</title>
+  <link rel="stylesheet" href="styles.css?v=11" />
+</head>
+<body>
+  <!-- COMPACT SINGLE-LINE TOP BAR -->
+  <header class="compact-topbar">
+    <div class="topbar-brand">
+      <span class="logo-icon">🥁</span>
+      <span class="logo-text">DRUMEO AL-BALAD</span>
+    </div>
+
+    <!-- LIVE SONG SEARCH / REQUEST ANY TRACK -->
+    <div class="topbar-search-wrapper">
+      <div class="search-input-box">
+        <span class="search-icon">🔍</span>
+        <input
+          id="live-song-search-input"
+          type="text"
+          placeholder="Search or request ANY song (Linkin Park, Butterfly, Slayer, Metallica, Slipknot...)"
+          autocomplete="off"
+        />
+        <button id="btn-live-song-search" class="btn-search-fetch">⚡ Bring Track</button>
+      </div>
+      <!-- Dropdown for live Songsterr results -->
+      <div id="live-search-dropdown" class="search-dropdown hidden"></div>
+    </div>
+
+    <!-- SIMPLE TOP RIGHT ACTIONS -->
+    <div class="topbar-right">
+      <div class="compact-workout-pill hidden">
+        <select id="workout-phase-select" class="phase-select"></select>
+        <span id="workout-timer-clock" class="timer-clock">05:00</span>
+        <button id="btn-workout-timer-toggle" class="btn-timer-mini">▶ Start</button>
+      </div>
+
+      <span id="mastered-progress-badge" class="streak-pill" title="Mastered Lessons & Tracks">🏆 0</span>
+
+      <button id="btn-lang-toggle" class="btn-lang-switch" title="Switch English / عربي">
+        🇪🇬 عربي
+      </button>
+    </div>
+  </header>
+
+  <!-- CLEAN 2-COLUMN WORKSPACE -->
+  <main class="clean-workspace">
+    <!-- LEFT SIDEBAR: 4 CLEAR MODES + TRACK LIST -->
+    <aside class="track-sidebar">
+      <div class="practice-mode-box">
+        <div id="sidebar-mode-heading" class="sidebar-section-label">🎯 Pick What to Play:</div>
+        <div class="practice-mode-grid">
+          <button class="mode-intent-btn active" data-mode="songs">🎸 Songs (22+)</button>
+          <button class="mode-intent-btn" data-mode="warmup">🔥 Warm Up (5)</button>
+          <button class="mode-intent-btn" data-mode="groove-lesson">🥁 Grooves (6)</button>
+          <button class="mode-intent-btn" data-mode="fills">⚡ Fills (7)</button>
+        </div>
+        <button id="btn-sidebar-open-plan" class="btn-open-plan-wide">
+          🗓️ 3-Month Plan (Weeks 1–12)
+        </button>
+      </div>
+
+      <!-- SUB-FILTERS FOR SONG TRACKS -->
+      <div id="song-band-filters" class="filter-pills-wrap">
+        <button class="cat-filter-btn active" data-cat="all-songs">All Songs</button>
+        <button class="cat-filter-btn" data-cat="linkin-park">Linkin Park</button>
+        <button class="cat-filter-btn" data-cat="nu-metal">2000s Nu-Metal</button>
+        <button class="cat-filter-btn" data-cat="soad-deftones">SOAD &amp; Deftones</button>
+        <button class="cat-filter-btn" data-cat="thrash">Metallica / Slayer / Megadeth</button>
+        <button class="cat-filter-btn" data-cat="bls-pantera">BLS &amp; Pantera</button>
+      </div>
+
+      <div id="curriculum-lesson-list" class="track-list-scroll">
+        <!-- Populated by app.js -->
+      </div>
+    </aside>
+
+    <!-- MAIN STAGE -->
+    <section class="main-stage">
+      <!-- 🗓️ 3-MONTH PLAN DRAWER (COLLAPSED BY DEFAULT SO THE SCREEN IS NEVER CLUTTERED) -->
+      <div id="week-routine-card" class="week-routine-card hidden">
+        <div class="week-routine-top">
+          <div class="week-selector-group">
+            <span class="plan-badge-tag">🗓️ 3-MONTH PLAN</span>
+            <select id="active-week-select" class="week-select-dropdown" title="Choose Your Current Week (Weeks 1 to 12)"></select>
+            <span id="active-week-bpm-pill" class="week-bpm-pill">70–95 BPM</span>
+          </div>
+
+          <div class="week-actions-group">
+            <button id="btn-start-week-workout" class="btn-start-week">▶ Start Week Routine</button>
+            <button id="btn-toggle-3month-drawer" class="btn-toggle-plan-drawer">✖ Close Plan ▴</button>
+          </div>
+        </div>
+
+        <div id="active-week-blocks-strip" class="week-blocks-strip"></div>
+
+        <div id="three-month-drawer" class="three-month-drawer">
+          <div class="drawer-header-bar">
+            <div>
+              <h3 id="drawer-main-title">🎓 Complete 3-Month (12-Week) Drum Plan</h3>
+              <p id="drawer-sub-title" class="drawer-subtitle">Click any warmup, groove, fill, or song below to load &amp; play it right away.</p>
+            </div>
+            <div class="month-tabs-row">
+              <button class="month-filter-btn active" data-month="all">All 3 Months</button>
+              <button class="month-filter-btn" data-month="1">Month 1: Basics</button>
+              <button class="month-filter-btn" data-month="2">Month 2: Grooves &amp; Toms</button>
+              <button class="month-filter-btn" data-month="3">Month 3: Metal Speed</button>
+            </div>
+          </div>
+
+          <div id="three-month-weeks-grid" class="three-month-weeks-grid"></div>
+        </div>
+      </div>
+
+      <!-- ONE SIMPLE, UNIFIED PLAYER & CONTROL DECK -->
+      <div class="control-deck">
+        <!-- ROW 1: SONG TITLE + AUDIO SOURCE CHOICE -->
+        <div class="song-header-row">
+          <div class="song-title-group">
+            <span id="active-lesson-band" class="band-tag">Linkin Park</span>
+            <h1 id="active-lesson-title" class="song-main-title">In the End</h1>
+            <span id="rt-status" class="rt-status-pill">✅ Ready — Press ▶ PLAY</span>
+          </div>
+
+          <div class="song-actions-group">
+            <!-- 3 Simple Audio Mode Choices (Visible for Songs) -->
+            <div id="song-audio-mode-group" class="audio-mode-segmented">
+              <button id="rt-btn-original" class="rt-mode-btn active" title="Play the real song recording synchronized with the drum animation">
+                🎸 Original Song
+              </button>
+              <button id="rt-btn-drumless" class="rt-mode-btn" title="Play the real song WITHOUT drums so YOU are the drummer">
+                🥁 Drumless Track
+              </button>
+              <button id="rt-btn-synth" class="rt-mode-btn" title="Practice at any slow or fast BPM using the built-in drum synth">
+                🎛️ Practice BPM
+              </button>
+              <button id="rt-btn-next" class="rt-mode-btn rt-mode-mini" title="Switch to another video version if needed">
+                ↻ Other Video
+              </button>
+            </div>
+
+            <button id="btn-fetch-full-song-parts" class="btn-fetch-parts hidden"></button>
+            <button id="btn-mark-mastered" class="btn-mastered-mini">🎯 Mastered</button>
+          </div>
+        </div>
+
+        <!-- ROW 2: CLICK ANY SECTION TO JUMP & PLAY IT (Walk Full Song, Drums Start, Verse, Chorus, Fills...) -->
+        <div id="song-parts-bar" class="song-parts-bar hidden"></div>
+
+        <!-- ROW 3: ONE BIG PLAY BUTTON + SPEED/BPM + 3 SIMPLE TOGGLES + COMPACT VIDEO -->
+        <div class="unified-transport-layout">
+          <div class="transport-main-left">
+            <div class="transport-strip">
+              <button id="btn-play-toggle" class="btn-play-hero">▶ PLAY (Space)</button>
+
+              <!-- Track Speed Control (Shown in Original / Drumless Song Mode) -->
+              <div id="rt-speed-box" class="rt-speed-box">
+                <span class="rt-sublabel">Track Speed:</span>
+                <select id="rt-speed" class="rt-select">
+                  <option value="0.5">0.5× (Very Slow)</option>
+                  <option value="0.75">0.75× (Slow Practice)</option>
+                  <option value="0.9">0.9× (Medium)</option>
+                  <option value="1" selected>1.0× (Real Speed)</option>
+                </select>
+              </div>
+
+              <!-- BPM Slider Control (Shown in Practice BPM Mode or Warmups/Grooves/Fills) -->
+              <div id="bpm-compact-box" class="bpm-compact-box hidden">
+                <button class="bpm-nudge-btn" data-delta="-5">-5</button>
+                <div class="bpm-num-wrap">
+                  <span id="bpm-display" class="bpm-val">80</span>
+                  <span class="bpm-lbl">BPM</span>
+                </div>
+                <button class="bpm-nudge-btn" data-delta="5">+5</button>
+                <input id="bpm-slider" type="range" min="45" max="185" value="80" class="bpm-slider" />
+                <button id="btn-reset-start-bpm" class="bpm-chip">Slow: <span id="start-bpm-val">80</span></button>
+                <button id="btn-jump-target-bpm" class="bpm-chip target">Real: <span id="target-bpm-val">105</span></button>
+              </div>
+
+              <!-- 3 Simple, Understandable Toggles -->
+              <div class="toggles-row">
+                <button id="btn-walk-lock-2bars" class="pill-toggle" title="Turn ON to repeat the current 2 bars over and over; leave OFF to walk through the whole song!">
+                  🔁 Repeat 2 Bars
+                </button>
+                <button id="btn-walk-guide-drums" class="pill-toggle active" title="Hear crisp drum kit hits on every note as the animation moves">
+                  🔊 Drum Sound
+                </button>
+                <button id="toggle-metronome" class="pill-toggle active" title="Hear metronome click on the beat">
+                  🔔 Click
+                </button>
+              </div>
+
+              <!-- Hidden legacy elements kept so JS bindings stay clean -->
+              <div class="hidden">
+                <button id="toggle-riff-melody" class="pill-toggle active"></button>
+                <button id="toggle-sub-click" class="pill-toggle"></button>
+                <button id="toggle-auto-speed" class="pill-toggle"></button>
+                <button id="toggle-gap-click" class="pill-toggle"></button>
+                <button class="loop-mode-btn active" data-mode="full"></button>
+                <button class="loop-mode-btn" data-mode="bar1"></button>
+                <button class="loop-mode-btn" data-mode="bar2"></button>
+                <span id="loop-counter-badge">Loop #1</span>
+                <button id="rt-btn-a"></button>
+                <button id="rt-btn-b"></button>
+                <button id="rt-btn-clear"></button>
+                <input id="rt-url-input" type="text" />
+                <button id="rt-btn-url"></button>
+              </div>
+            </div>
+
+            <!-- WALK-ALONG BAR SCRUBBER (Shown for Songs) -->
+            <div id="walk-progress-strip" class="walk-progress-strip hidden">
+              <button id="btn-walk-prev" class="walk-mini-btn" title="Go back 2 bars">⏮ -2 Bars</button>
+              <span id="walk-bar-readout" class="walk-bar-badge">🚶 Bar 10 / 92 • Verse 1</span>
+              <div class="walk-scrubber-wrap">
+                <input id="walk-bar-scrubber" type="range" min="0" max="90" value="9" class="walk-scrubber" title="Drag to jump to any bar in the song" />
+              </div>
+              <span id="walk-time-readout" class="walk-time-badge">0:21</span>
+              <button id="btn-walk-next" class="walk-mini-btn" title="Go forward 2 bars">⏭ +2 Bars</button>
+              <button id="btn-walk-drums-enter" class="walk-mini-btn accent" title="Jump right to the bar where the drums enter">🥁 Drums Start</button>
+            </div>
+          </div>
+
+          <!-- COMPACT VIDEO PREVIEW ON THE RIGHT (Shown when Original Song or Drumless Track is selected) -->
+          <div id="real-track-panel" class="rt-video-compact">
+            <div class="rt-video-wrap">
+              <div id="yt-player-host"></div>
+              <div id="rt-video-placeholder" class="rt-video-placeholder">🎬</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INLINE COACH INSTRUCTION BAR -->
+        <div class="inline-coach-strip">
+          <span class="coach-badge">💡 TIP</span>
+          <span id="coach-tip-text" class="coach-inline-text"></span>
+        </div>
+      </div>
+
+      <!-- HERO VIEW: LETTER NOTATION ON TOP + LARGE GRAPHICAL 5-PIECE DRUM KIT RIGHT UNDERNEATH -->
+      <div class="hero-stacked-stage">
+        <!-- 1. FULL-WIDTH LETTER NOTATION CARDS -->
+        <div class="letter-stage-card">
+          <div class="stage-bar-top">
+            <span class="stage-label">🥁 Step 1: Follow the Letter Notation (2 Bars at a Time — Walks With the Song!)</span>
+            <span id="live-phrase-banner" class="live-status-pill">Press ▶ PLAY (or Spacebar)</span>
+          </div>
+
+          <div id="letter-notation-bars" class="letter-bars-stack">
+            <!-- Populated by app.js -->
+          </div>
+        </div>
+
+        <!-- 2. LARGE FULL-WIDTH GRAPHICAL DRUM KIT UNDERNEATH LETTER NOTATION (ZERO JUMP!) -->
+        <div class="visual-kit-hero-card">
+          <div class="stage-bar-top">
+            <span class="stage-label">🎯 Where to Play on Your 5-Piece Kit (Drummer's View)</span>
+            <span id="active-hit-callout" class="hit-callout-pill">🎯 Hit: Ready</span>
+          </div>
+
+          <div class="svg-kit-hero-wrap">
+            <svg id="hero-drum-kit-svg" viewBox="0 0 780 270" class="drum-kit-svg" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="stick-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#fbbf24" />
+                </marker>
+              </defs>
+
+              <!-- Bass Drum (B) Center Pedal + Shell -->
+              <g class="kit-piece" data-drum="B" data-cx="390" data-cy="60">
+                <rect x="315" y="12" width="150" height="72" rx="14" class="drum-shell kick-shell" />
+                <rect x="366" y="86" width="48" height="56" rx="8" class="kick-pedal" />
+                <text x="390" y="47" text-anchor="middle" class="kit-code-text">B</text>
+                <text x="390" y="67" text-anchor="middle" class="kit-sub-text">Single Kick (Right Foot)</text>
+              </g>
+
+              <!-- Crash Cymbal (C) Top Left -->
+              <g class="kit-piece" data-drum="C" data-cx="135" data-cy="58">
+                <circle cx="135" cy="58" r="52" class="drum-cymbal crash-cymbal" />
+                <circle cx="135" cy="58" r="10" class="cymbal-bell" />
+                <text x="135" y="54" text-anchor="middle" class="kit-code-text">C</text>
+                <text x="135" y="73" text-anchor="middle" class="kit-sub-text">Crash (Beat 1!)</text>
+              </g>
+
+              <!-- Ride Cymbal (R) Top Right -->
+              <g class="kit-piece" data-drum="R" data-cx="645" data-cy="62">
+                <circle cx="645" cy="62" r="54" class="drum-cymbal ride-cymbal" />
+                <circle cx="645" cy="62" r="11" class="cymbal-bell" />
+                <text x="645" y="58" text-anchor="middle" class="kit-code-text">R</text>
+                <text x="645" y="77" text-anchor="middle" class="kit-sub-text">Ride Cymbal</text>
+              </g>
+
+              <!-- Hi-Hat (X / O) Mid Left -->
+              <g class="kit-piece" data-drum="X" data-cx="105" data-cy="185">
+                <circle cx="105" cy="185" r="50" class="drum-cymbal hihat-cymbal" />
+                <circle cx="105" cy="185" r="9" class="cymbal-bell" />
+                <text x="105" y="181" text-anchor="middle" class="kit-code-text">X / O</text>
+                <text x="105" y="200" text-anchor="middle" class="kit-sub-text">Hi-Hat (Left)</text>
+              </g>
+
+              <!-- High Rack Tom (T1) Upper Center-Left -->
+              <g class="kit-piece" data-drum="T1" data-cx="285" data-cy="126">
+                <circle cx="285" cy="126" r="48" class="drum-shell tom1-shell" />
+                <text x="285" y="122" text-anchor="middle" class="kit-code-text">T1</text>
+                <text x="285" y="141" text-anchor="middle" class="kit-sub-text">High Tom 1</text>
+              </g>
+
+              <!-- Mid Rack Tom (T2) Upper Center-Right -->
+              <g class="kit-piece" data-drum="T2" data-cx="495" data-cy="126">
+                <circle cx="495" cy="126" r="50" class="drum-shell tom2-shell" />
+                <text x="495" y="122" text-anchor="middle" class="kit-code-text">T2</text>
+                <text x="495" y="141" text-anchor="middle" class="kit-sub-text">Mid Tom 2</text>
+              </g>
+
+              <!-- Snare Drum (S / g) Lower Center-Left -->
+              <g class="kit-piece" data-drum="S" data-cx="245" data-cy="210">
+                <circle cx="245" cy="210" r="55" class="drum-shell snare-shell" />
+                <circle cx="245" cy="210" r="37" class="snare-inner-ring" />
+                <text x="245" y="205" text-anchor="middle" class="kit-code-text">S / g</text>
+                <text x="245" y="225" text-anchor="middle" class="kit-sub-text">Snare + Ghost Note</text>
+              </g>
+
+              <!-- Floor Tom (FT) Lower Right -->
+              <g class="kit-piece" data-drum="FT" data-cx="555" data-cy="206">
+                <circle cx="555" cy="206" r="58" class="drum-shell floortom-shell" />
+                <text x="555" y="201" text-anchor="middle" class="kit-code-text">FT</text>
+                <text x="555" y="221" text-anchor="middle" class="kit-sub-text">Floor Tom (Right)</text>
+              </g>
+
+              <!-- Dynamic Movement Arrow showing hand movement to next drum -->
+              <line id="kit-motion-arrow" x1="0" y1="0" x2="0" y2="0" class="kit-motion-line hidden" marker-end="url(#stick-arrow)" />
+            </svg>
+          </div>
+          <div class="kit-quick-hint">
+            💡 Click any drum to hear it, or press keys: <code>C</code> <code>R</code> <code>X</code> <code>O</code> <code>S</code> <code>G</code> <code>1</code> <code>2</code> <code>F</code> <code>B</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEGMENTED BOTTOM VIEW TABS (ONLY ONE OPEN AT A TIME = ZERO NOISE!) -->
+      <div class="bottom-tabs-container">
+        <div class="segmented-tab-bar">
+          <button class="view-tab-btn active" data-tab="tab-grid-pane">📊 Drum Tab Grid (Click to Edit)</button>
+          <button class="view-tab-btn" data-tab="fill-builder-pane">⚡ Fill Generator &amp; Paste Custom Tab</button>
+          <button class="view-tab-btn" data-tab="kit-visualizer-pane">📖 Symbol Key (دليل الرموز)</button>
+        </div>
+
+        <!-- PANE 1: INTERACTIVE DRUM TAB GRID -->
+        <div id="tab-grid-pane" class="tab-pane active-pane">
+          <div id="drum-tab-grid-wrapper" class="drum-tab-scroll"></div>
+        </div>
+
+        <!-- PANE 2: SYMBOL KEY -->
+        <div id="kit-visualizer-pane" class="tab-pane">
+          <div id="drum-legend-grid" class="legend-grid"></div>
+        </div>
+
+        <!-- PANE 3: FILL FORMULA BUILDER & CUSTOM TAB INPUT -->
+        <div id="fill-builder-pane" class="tab-pane">
+          <div class="tools-split-grid">
+            <div class="tool-subcard">
+              <h4>⚡ Metal Fill Formula Generator (Rhythm + Sticking + Toms)</h4>
+              <div class="generator-form">
+                <select id="gen-rhythm-select"></select>
+                <select id="gen-sticking-select"></select>
+                <select id="gen-orch-select"></select>
+                <div class="gen-btn-row">
+                  <button id="btn-generate-fill" class="btn-primary-action">⚡ Build Fill</button>
+                  <button id="btn-random-metal-fill" class="btn-secondary-action">🎲 Random Metal Fill</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="tool-subcard">
+              <h4>📋 Paste or Type Any Letter Tab (`XB - X - XS...`)</h4>
+              <div class="custom-tab-form">
+                <textarea id="custom-tab-input" rows="2">XB - X - XS - X - XB - X - XS - X | XB - - - XS - - - SB - g - T1 - B - FT - - - S - FT</textarea>
+                <div class="custom-controls-row">
+                  <select id="custom-tab-sub-select">
+                    <option value="auto">Auto Grid (8th / 16th)</option>
+                    <option value="16th">16th-Note Grid (1 e &amp; a)</option>
+                    <option value="8th">8th-Note Grid (1 &amp; 2 &amp;)</option>
+                  </select>
+                  <button id="btn-load-custom-tab" class="btn-primary-action">🔊 Load &amp; Play</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="audioEngine.js?v=11"></script>
+  <script src="curriculumData.js?v=11"></script>
+  <script src="app.js?v=11"></script>
+</body>
+</html>
