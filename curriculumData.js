@@ -72,13 +72,44 @@ function inferSticking(drums, stepInBeat, isFillStep) {
   if (!isFillStep) {
     const hasCymbal = handDrums.some((d) => ['C', 'R', 'X', 'O'].includes(d));
     const hasSnare = handDrums.includes('S');
+    const hasTom = handDrums.some((d) => ['T1', 'T2', 'FT'].includes(d));
     if (hasCymbal && hasSnare) return hasKick ? 'R+L+K' : 'R+L';
+    if (hasCymbal && hasTom) return hasKick ? 'R+L+K' : 'R+L';
     if (hasCymbal) return hasKick ? 'R+K' : 'R';
     if (hasSnare) return hasKick ? 'L+K' : 'L';
   }
 
   const hand = stepInBeat % 2 === 0 ? 'R' : 'L';
   return hasKick ? `${hand}+K` : hand;
+}
+
+function getDrumDescNames(drums, lang = 'en') {
+  if (!drums || drums.length === 0) return lang === 'ar' ? 'سكتة' : 'Rest';
+  const mapEn = {
+    B: 'Kick',
+    S: 'Snare',
+    g: 'Ghost',
+    X: 'HiHat',
+    O: 'OpenHat',
+    C: 'Crash',
+    T1: 'HighTom',
+    T2: 'MidTom',
+    FT: 'FloorTom'
+  };
+  const mapAr = {
+    B: 'كيك',
+    S: 'سنير',
+    g: 'جوست',
+    X: 'هاي-هات',
+    O: 'هات-مفتوح',
+    C: 'كراش',
+    T1: 'توم١',
+    T2: 'توم٢',
+    FT: 'فلور'
+  };
+  const m = lang === 'ar' ? mapAr : mapEn;
+  const names = drums.map((d) => m[d] || d);
+  return names.join(' + ');
 }
 
 function attachRiffToBarSteps(barSteps, rawRiff, riffTone) {
@@ -149,7 +180,7 @@ function compileBarsToSteps(bars, defaultRiffTone = 'metal') {
           isLandingStep: isLanding,
           drums,
           token: formatDrumsToToken(drums),
-          sticking: rawStickings[i] || inferSticking(drums, stepIdx16 % 4, isFill)
+          sticking: inferSticking(drums, stepIdx16 % 4, isFill) || rawStickings[i]
         });
 
         const oddIdx = stepIdx16 + 1;

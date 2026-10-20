@@ -1775,9 +1775,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (step.isLandingStep) card.classList.add('is-landing-step');
         if (step.drums.length === 0) card.classList.add('is-rest-step');
 
+        const plainDesc = window.getDrumDescNames
+          ? window.getDrumDescNames(step.drums, state.lang)
+          : '';
+
         card.innerHTML = `
           <div class="step-count-row"><span class="step-count-label">${step.count}</span></div>
           <div class="step-token-main">${step.token}</div>
+          <div class="step-desc-row" title="${plainDesc}">${plainDesc}</div>
           <div class="step-sticking-row">${step.sticking || '·'}</div>
         `;
 
