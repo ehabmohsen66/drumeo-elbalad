@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DRUMEO AL-BALAD — 3-Month Metal &amp; 2000s Drum Teaching System</title>
-  <link rel="stylesheet" href="styles.css?v=13" />
+  <link rel="stylesheet" href="styles.css?v=14" />
 </head>
 <body>
   <!-- COMPACT SINGLE-LINE TOP BAR -->
@@ -238,6 +238,45 @@
           <span class="coach-badge">💡 TIP</span>
           <span id="coach-tip-text" class="coach-inline-text"></span>
         </div>
+
+        <!-- LIVE DRUM PLAY-CHECKER & INTERACTIVE COACH -->
+        <div id="live-coach-panel" class="live-coach-panel">
+          <div class="live-coach-top-row">
+            <div class="live-coach-controls">
+              <button id="btn-coach-mic" class="btn-coach-listen" title="Use your Microphone to listen to your real acoustic drums, practice pad, or sticks">
+                🎙️ Check My Playing (Mic)
+              </button>
+              <button id="btn-coach-autoloop" class="btn-coach-mode" title="Hold the current 2 bars until you reach 80% accuracy, then automatically advance to the next 2 bars!">
+                🧘 Auto-Coach (Pass at 80%)
+              </button>
+              <span id="coach-midi-status" class="coach-midi-pill" title="Plug in any USB-MIDI electronic drum kit or tap keys B, S, X, 1, 2, F">
+                ⌨️ Keys / MIDI Ready
+              </span>
+
+              <div id="coach-mic-meter-wrap" class="coach-mic-meter-wrap hidden">
+                <span class="mic-lbl">Mic:</span>
+                <div class="mic-meter-bar">
+                  <div id="coach-mic-level-fill" class="mic-meter-fill"></div>
+                </div>
+                <span class="mic-lbl">Sens:</span>
+                <input id="coach-mic-sens" type="range" min="15" max="90" value="55" class="mic-sens-slider" title="Adjust microphone hit sensitivity" />
+              </div>
+            </div>
+
+            <div class="live-coach-stats">
+              <span id="coach-accuracy-pill" class="coach-stat-pill">🎯 Accuracy: --%</span>
+              <span id="coach-streak-pill" class="coach-stat-pill">🔥 Streak: 0</span>
+              <span id="coach-timing-pill" class="coach-stat-pill">⏱️ Timing: Ready</span>
+              <span id="coach-last-hit-pill" class="coach-stat-pill">🥁 Heard: --</span>
+              <button id="btn-coach-reset" class="coach-reset-btn" title="Reset accuracy score">↺</button>
+            </div>
+          </div>
+
+          <div id="coach-guidance-banner" class="coach-guidance-banner">
+            <span class="coach-guide-icon">🎓</span>
+            <span id="coach-guidance-text">Click <strong>🎙️ Check My Playing (Mic)</strong> (or tap keys <code>B</code>=Kick, <code>S</code>=Snare, <code>X</code>=Hi-Hat, or plug in a USB-MIDI kit) while the song plays — the boxes below will light up 🟢 <strong>Perfect</strong>, 🟡 <strong>Early/Late</strong>, or 🔴 <strong>Missed</strong> and guide you!</span>
+          </div>
+        </div>
       </div>
 
       <!-- HERO VIEW: LETTER NOTATION ON TOP + LARGE GRAPHICAL 5-PIECE DRUM KIT RIGHT UNDERNEATH -->
@@ -394,8 +433,8 @@
     </section>
   </main>
 
-  <script src="audioEngine.js?v=13"></script>
-  <script src="curriculumData.js?v=13"></script>
-  <script src="app.js?v=13"></script>
+  <script src="audioEngine.js?v=14"></script>
+  <script src="curriculumData.js?v=14"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>

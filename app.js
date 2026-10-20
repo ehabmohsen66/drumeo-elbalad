@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFillGeneratorControls();
     bindTransportAndControls();
     bindKeyboardDrumKit();
+    setupLiveDrumCoach();
     updateLangButtonUI();
     renderDrumLegend();
 
@@ -1967,6 +1968,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function highlightStepVisuals(stepIndex, step) {
     if (!step) return;
+    onCoachStepAdvance(stepIndex, step);
 
     document.querySelectorAll('.step-letter-card').forEach((el) => {
       el.classList.toggle('active-playhead', parseInt(el.dataset.stepIndex, 10) === stepIndex);
@@ -2381,7 +2383,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function bindKeyboardDrumKit() {
     document.querySelectorAll('.kit-piece').forEach((piece) => {
-      piece.addEventListener('click', () => engine.triggerDrum(piece.dataset.drum));
+      piece.addEventListener('click', () => {
+        const d = piece.dataset.drum;
+        engine.triggerDrum(d);
+        registerUserDrumStrike(d, 'pad');
+      });
     });
     const keyMap = {
       KeyX: 'X', KeyO: 'O', KeyS: 'S', KeyG: 'g',
@@ -2389,8 +2395,590 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     window.addEventListener('keydown', (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-      if (keyMap[e.code]) engine.triggerDrum(keyMap[e.code]);
+      if (keyMap[e.code]) {
+        const d = keyMap[e.code];
+        engine.triggerDrum(d);
+        registerUserDrumStrike(d, 'key');
+      }
     });
+  }
+
+  // ==========================================================================
+  // 🎯 LIVE DRUM PLAY-CHECKER & INTERACTIVE COACH (MIC + USB-MIDI + KEYS)
+  // ==========================================================================
+
+  const coachState = {
+    micActive: false,
+    midiConnected: false,
+    autoCoach: false,
+    micStream: null,
+    micAnalyser: null,
+    micRafId: null,
+    micSensitivity: 55,
+    prevMicEnergy: 0,
+    noiseFloor: 6,
+    lastMicTriggerMs: 0,
+    activeStepIdx: 0,
+    prevStepIdx: -1,
+    stepTimestamps: {},
+    stepGrades: {},
+    stepDurMs: 140,
+    sessionHits: 0,
+    sessionMisses: 0,
+    streak: 0,
+    timingOffsets: [],
+    passHits: 0,
+    passMisses: 0,
+    passMissedDrums: { B: 0, S: 0, X: 0, TOM: 0 },
+    passMissedCounts: []
+  };
+
+  function isActivelyChecking() {
+    return (
+      coachState.micActive ||
+      coachState.autoCoach ||
+      coachState.midiConnected ||
+      coachState.sessionHits + coachState.sessionMisses > 0
+    );
+  }
+
+  function isTransportPlaying() {
+    return !!(rtState.ytPlaying || engine.isPlaying);
+  }
+
+  function markStepCardVisual(stepIdx, grade, labelText) {
+    const card = document.querySelector(`.step-letter-card[data-step-index="${stepIdx}"]`);
+    if (!card) return;
+    card.classList.remove(
+      'coach-hit-perfect',
+      'coach-hit-early',
+      'coach-hit-late',
+      'coach-hit-miss'
+    );
+    card.querySelector('.step-grade-tag')?.remove();
+
+    if (!grade) return;
+    card.classList.add(`coach-hit-${grade}`);
+    const tag = document.createElement('span');
+    tag.className = `step-grade-tag ${grade}`;
+    tag.textContent = labelText;
+    card.appendChild(tag);
+  }
+
+  function clearPassStepVisuals() {
+    coachState.stepGrades = {};
+    document.querySelectorAll('.step-letter-card').forEach((card) => {
+      card.classList.remove(
+        'coach-hit-perfect',
+        'coach-hit-early',
+        'coach-hit-late',
+        'coach-hit-miss'
+      );
+      card.querySelector('.step-grade-tag')?.remove();
+    });
+  }
+
+  function updateCoachScoreboardUI(lastDrumLabel = null) {
+    const accEl = document.getElementById('coach-accuracy-pill');
+    const streakEl = document.getElementById('coach-streak-pill');
+    const timingEl = document.getElementById('coach-timing-pill');
+    const heardEl = document.getElementById('coach-last-hit-pill');
+
+    const total = coachState.sessionHits + coachState.sessionMisses;
+    const acc = total > 0 ? Math.round((coachState.sessionHits / total) * 100) : null;
+
+    if (accEl) {
+      accEl.textContent = acc !== null ? `🎯 Accuracy: ${acc}%` : '🎯 Accuracy: --%';
+      accEl.classList.remove('good', 'warn', 'bad');
+      if (acc !== null) {
+        accEl.classList.add(acc >= 80 ? 'good' : acc >= 55 ? 'warn' : 'bad');
+      }
+    }
+
+    if (streakEl) {
+      streakEl.textContent = `🔥 Streak: ${coachState.streak}`;
+      streakEl.classList.toggle('good', coachState.streak >= 8);
+    }
+
+    if (timingEl && coachState.timingOffsets.length > 0) {
+      const recent = coachState.timingOffsets.slice(-12);
+      const avgMs = Math.round(recent.reduce((a, b) => a + b, 0) / recent.length);
+      timingEl.classList.remove('good', 'warn', 'bad');
+      if (Math.abs(avgMs) <= 35) {
+        timingEl.textContent = `⏱️ Locked In (${avgMs >= 0 ? '+' : ''}${avgMs}ms)`;
+        timingEl.classList.add('good');
+      } else if (avgMs < -35) {
+        timingEl.textContent = `⚡ Early / Rushing (${avgMs}ms)`;
+        timingEl.classList.add('warn');
+      } else {
+        timingEl.textContent = `🐢 Late / Dragging (+${avgMs}ms)`;
+        timingEl.classList.add('warn');
+      }
+    }
+
+    if (heardEl && lastDrumLabel) {
+      heardEl.textContent = `🥁 Heard: ${lastDrumLabel}`;
+    }
+  }
+
+  function setCoachGuidanceMessage(htmlMsg) {
+    const el = document.getElementById('coach-guidance-text');
+    if (el) el.innerHTML = htmlMsg;
+  }
+
+  function checkMissedStep(stepIdx) {
+    if (stepIdx < 0 || !isTransportPlaying() || !isActivelyChecking()) return;
+    if (coachState.stepGrades[stepIdx]) return;
+    const stepObj = state.activeSteps[stepIdx];
+    if (!stepObj || !stepObj.drums || stepObj.drums.length === 0) return;
+
+    coachState.stepGrades[stepIdx] = 'miss';
+    coachState.sessionMisses++;
+    coachState.passMisses++;
+    coachState.streak = 0;
+
+    stepObj.drums.forEach((d) => {
+      if (d === 'B') coachState.passMissedDrums.B++;
+      else if (d === 'S' || d === 'g') coachState.passMissedDrums.S++;
+      else if (d === 'T1' || d === 'T2' || d === 'FT') coachState.passMissedDrums.TOM++;
+      else coachState.passMissedDrums.X++;
+    });
+    if (coachState.passMissedCounts.length < 4) {
+      coachState.passMissedCounts.push(`${stepObj.count} (${stepObj.token})`);
+    }
+
+    markStepCardVisual(stepIdx, 'miss', 'MISS');
+    updateCoachScoreboardUI();
+  }
+
+  function evaluateTwoBarPass() {
+    const passTotal = coachState.passHits + coachState.passMisses;
+    if (passTotal < 3 || !isActivelyChecking()) {
+      coachState.passHits = 0;
+      coachState.passMisses = 0;
+      coachState.passMissedDrums = { B: 0, S: 0, X: 0, TOM: 0 };
+      coachState.passMissedCounts = [];
+      clearPassStepVisuals();
+      return;
+    }
+
+    const passAcc = Math.round((coachState.passHits / passTotal) * 100);
+    const recentOffsets = coachState.timingOffsets.slice(-12);
+    const avgMs =
+      recentOffsets.length > 0
+        ? Math.round(recentOffsets.reduce((a, b) => a + b, 0) / recentOffsets.length)
+        : 0;
+
+    // Identify weakest limb/drum in this 2-bar pass
+    const md = coachState.passMissedDrums;
+    let focusTipEn = '';
+    let focusTipAr = '';
+    if (md.B > md.S && md.B >= 2) {
+      focusTipEn = `Focus on your <strong>Right Foot Kick (<code>B</code>)</strong> — missed on beats <code>${coachState.passMissedCounts.slice(0, 2).join(', ')}</code>.`;
+      focusTipAr = `ركز على <strong>البيز درام برجلك اليمين (<code>B</code>)</strong> في العدات <code>${coachState.passMissedCounts.slice(0, 2).join(', ')}</code>.`;
+    } else if (md.S >= 2) {
+      focusTipEn = `Anchor your <strong>Snare backbeat (<code>S</code> on Beats 2 &amp; 4)</strong> — missed on <code>${coachState.passMissedCounts.slice(0, 2).join(', ')}</code>.`;
+      focusTipAr = `ثبّت <strong>السنير (<code>S</code> في العدات 2 و 4)</strong> — فاتتك في <code>${coachState.passMissedCounts.slice(0, 2).join(', ')}</code>.`;
+    } else if (md.TOM >= 2) {
+      focusTipEn = `Smooth out the <strong>Tom Fill (<code>T1 → T2 → FT</code>)</strong> — count 16ths evenly and land on <code>CB</code> Beat 1!`;
+      focusTipAr = `احسب عدات <strong>الفيل على التومات (<code>T1 → T2 → FT</code>)</strong> بهدوء وارجع على <code>CB</code> في عدة 1!`;
+    } else if (avgMs < -40) {
+      focusTipEn = `You're <strong>rushing ahead of the beat (${avgMs}ms early)</strong>. Take a breath and wait for the click!`;
+      focusTipAr = `إنت <strong>بتسبق الإيقاع (${avgMs}ms بدري)</strong>. اهدى شوية واستنى الكليك!`;
+    } else if (avgMs > 45) {
+      focusTipEn = `You're <strong>dragging slightly behind (+${avgMs}ms late)</strong>. Keep your Hi-Hat hand relaxed!`;
+      focusTipAr = `إنت <strong>متأخر سنة صغيرة (+${avgMs}ms)</strong>. خفف إيدك اليمين على الهاي هات!`;
+    } else {
+      focusTipEn = `Great pocket! Your timing is within <strong>${Math.abs(avgMs)}ms</strong> of the beat.`;
+      focusTipAr = `إيقاعك مظبوط جداً بفرق <strong>${Math.abs(avgMs)}ms</strong> بس عن التراك!`;
+    }
+
+    if (coachState.autoCoach) {
+      if (passAcc >= 80) {
+        const msgEn = `🏆 <strong>${passAcc}% Pass Mastered!</strong> ${focusTipEn} <strong>Advancing +2 Bars →</strong>`;
+        const msgAr = `🏆 <strong>إتقان ${passAcc}%!</strong> ${focusTipAr} <strong>جاري الانتقال للمازورتين اللي بعدهم →</strong>`;
+        setCoachGuidanceMessage(state.lang === 'ar' ? msgAr : msgEn);
+
+        if (rtState.walkMode && rtState.allBars && rtState.allBars.length > 2) {
+          let nextPair = rtState.currentPairStartBar + 2;
+          if (nextPair >= rtState.allBars.length) nextPair = rtState.firstDrumBarIndex || 0;
+          setTimeout(() => {
+            setWalkPairWindow(nextPair, true);
+            const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
+            if (lesson) renderSongPartsBar(lesson);
+          }, 60);
+        }
+      } else {
+        setLockTwoBars(true);
+        const msgEn = `🔁 <strong>${passAcc}% on these 2 bars (Target: 80%):</strong> Repeating these 2 bars for you! ${focusTipEn}`;
+        const msgAr = `🔁 <strong>دقتك ${passAcc}% (المطلوب 80%):</strong> هكررلك المازورتين دول تاني! ${focusTipAr}`;
+        setCoachGuidanceMessage(state.lang === 'ar' ? msgAr : msgEn);
+      }
+    } else {
+      const statusBadge =
+        passAcc >= 80
+          ? `🟢 <strong>${passAcc}% Locked In!</strong>`
+          : passAcc >= 55
+          ? `🟡 <strong>${passAcc}% Getting Close:</strong>`
+          : `🔴 <strong>${passAcc}% Needs Practice:</strong>`;
+      setCoachGuidanceMessage(`${statusBadge} ${state.lang === 'ar' ? focusTipAr : focusTipEn}`);
+    }
+
+    coachState.passHits = 0;
+    coachState.passMisses = 0;
+    coachState.passMissedDrums = { B: 0, S: 0, X: 0, TOM: 0 };
+    coachState.passMissedCounts = [];
+    clearPassStepVisuals();
+  }
+
+  function onCoachStepAdvance(stepIndex, step) {
+    const nowMs = performance.now();
+    const prevIdx = coachState.activeStepIdx;
+
+    if (prevIdx !== stepIndex && coachState.stepTimestamps[prevIdx]) {
+      const elapsed = nowMs - coachState.stepTimestamps[prevIdx];
+      if (elapsed >= 55 && elapsed <= 450) {
+        coachState.stepDurMs = Math.round(coachState.stepDurMs * 0.7 + elapsed * 0.3);
+      }
+    }
+
+    // Check if the step from 1 step before prevIdx was missed (giving prevIdx its full late-hit window)
+    if (prevIdx !== stepIndex && coachState.prevStepIdx >= 0) {
+      checkMissedStep(coachState.prevStepIdx);
+    }
+
+    // If wrapping around to step 0 of the 2-bar window, check the final step and evaluate the 2-bar pass
+    if (stepIndex === 0 && prevIdx > 0) {
+      checkMissedStep(prevIdx);
+      evaluateTwoBarPass();
+    }
+
+    coachState.prevStepIdx = prevIdx;
+    coachState.activeStepIdx = stepIndex;
+    coachState.stepTimestamps[stepIndex] = nowMs;
+  }
+
+  function registerUserDrumStrike(drumCode, source = 'mic') {
+    const nowMs = performance.now();
+    const labelMap = {
+      B: 'Kick (B)',
+      S: 'Snare (S)',
+      g: 'Ghost Snare (g)',
+      X: 'Hi-Hat (X)',
+      O: 'Open Hat (O)',
+      T1: 'High Tom (T1)',
+      T2: 'Mid Tom (T2)',
+      FT: 'Floor Tom (FT)',
+      C: 'Crash (C)',
+      R: 'Ride (R)'
+    };
+    const heardLabel = labelMap[drumCode] || drumCode;
+
+    // Flash the drum on the 5-piece kit so the user sees their hit registered
+    if (source === 'mic' || source === 'midi') {
+      engine.onDrumTriggerCallback?.(drumCode);
+    }
+
+    if (!isTransportPlaying() || state.activeSteps.length === 0) {
+      updateCoachScoreboardUI(heardLabel);
+      return;
+    }
+
+    const totalSteps = state.activeSteps.length;
+    const curIdx = coachState.activeStepIdx;
+    const prevIdx = (curIdx - 1 + totalSteps) % totalSteps;
+    const nextIdx = (curIdx + 1) % totalSteps;
+
+    const candidates = [
+      { idx: curIdx, expectedMs: coachState.stepTimestamps[curIdx] || nowMs },
+      {
+        idx: prevIdx,
+        expectedMs:
+          coachState.stepTimestamps[prevIdx] || nowMs - coachState.stepDurMs
+      },
+      {
+        idx: nextIdx,
+        expectedMs:
+          (coachState.stepTimestamps[curIdx] || nowMs) + coachState.stepDurMs
+      }
+    ];
+
+    let bestCandidate = null;
+    let bestAbsDelta = Infinity;
+
+    for (const c of candidates) {
+      const stepObj = state.activeSteps[c.idx];
+      if (!stepObj || !stepObj.drums || stepObj.drums.length === 0) continue;
+      if (
+        coachState.stepGrades[c.idx] &&
+        coachState.stepGrades[c.idx] !== 'miss'
+      ) {
+        continue;
+      }
+      const deltaMs = nowMs - c.expectedMs;
+      const absDelta = Math.abs(deltaMs);
+      if (absDelta <= 165 && absDelta < bestAbsDelta) {
+        bestAbsDelta = absDelta;
+        bestCandidate = { ...c, deltaMs, stepObj };
+      }
+    }
+
+    if (!bestCandidate) {
+      updateCoachScoreboardUI(heardLabel);
+      return;
+    }
+
+    // If it was previously marked miss on boundary, convert it to a late hit
+    if (coachState.stepGrades[bestCandidate.idx] === 'miss') {
+      coachState.sessionMisses = Math.max(0, coachState.sessionMisses - 1);
+      coachState.passMisses = Math.max(0, coachState.passMisses - 1);
+    }
+
+    const offsetMs = Math.round(bestCandidate.deltaMs);
+    coachState.timingOffsets.push(offsetMs);
+    if (coachState.timingOffsets.length > 40) coachState.timingOffsets.shift();
+
+    let grade = 'perfect';
+    let badgeText = '✓';
+    if (Math.abs(offsetMs) <= 60) {
+      grade = 'perfect';
+      badgeText = '✓';
+    } else if (offsetMs < -60) {
+      grade = 'early';
+      badgeText = 'EARLY';
+    } else {
+      grade = 'late';
+      badgeText = 'LATE';
+    }
+
+    coachState.stepGrades[bestCandidate.idx] = grade;
+    coachState.sessionHits++;
+    coachState.passHits++;
+    coachState.streak++;
+
+    markStepCardVisual(bestCandidate.idx, grade, badgeText);
+    updateCoachScoreboardUI(heardLabel);
+  }
+
+  async function toggleMicListening() {
+    const btnMic = document.getElementById('btn-coach-mic');
+    const meterWrap = document.getElementById('coach-mic-meter-wrap');
+    const meterFill = document.getElementById('coach-mic-level-fill');
+
+    if (coachState.micActive) {
+      coachState.micActive = false;
+      if (coachState.micRafId) cancelAnimationFrame(coachState.micRafId);
+      if (coachState.micStream) {
+        coachState.micStream.getTracks().forEach((t) => t.stop());
+        coachState.micStream = null;
+      }
+      btnMic?.classList.remove('listening');
+      if (btnMic) btnMic.textContent = '🎙️ Check My Playing (Mic)';
+      meterWrap?.classList.add('hidden');
+      return;
+    }
+
+    try {
+      engine.init();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+
+      coachState.micStream = stream;
+      const source = engine.ctx.createMediaStreamSource(stream);
+      const analyser = engine.ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.12;
+      source.connect(analyser);
+      coachState.micAnalyser = analyser;
+      coachState.micActive = true;
+
+      // Turn off synthetic guide drum hits so the mic listens to YOU, not the computer's drum synth
+      if (rtState.guideDrumsEnabled) {
+        rtState.guideDrumsEnabled = false;
+        document.getElementById('btn-walk-guide-drums')?.classList.remove('active');
+      }
+
+      btnMic?.classList.add('listening');
+      if (btnMic) btnMic.textContent = '🔴 Listening to Your Drums...';
+      meterWrap?.classList.remove('hidden');
+
+      setCoachGuidanceMessage(
+        state.lang === 'ar'
+          ? '🎙️ <strong>المايك شغال دلوقتي!</strong> اضغط <strong>▶ PLAY</strong> وابدأ اعزف على الدرامز أو الباد — المربعات هتنور أخضر وأصفر وأحمر وهتصححلك أخطاءك!'
+          : '🎙️ <strong>Microphone Active!</strong> Press <strong>▶ PLAY</strong> and play your drums or practice pad — each box below will grade your hits live!'
+      );
+
+      const freqData = new Uint8Array(analyser.frequencyBinCount);
+      const timeData = new Uint8Array(analyser.fftSize);
+
+      const sampleMic = () => {
+        if (!coachState.micActive || !coachState.micAnalyser) return;
+
+        analyser.getByteTimeDomainData(timeData);
+        analyser.getByteFrequencyData(freqData);
+
+        let peak = 0;
+        for (let i = 0; i < timeData.length; i++) {
+          const amp = Math.abs(timeData[i] - 128);
+          if (amp > peak) peak = amp;
+        }
+
+        const levelPct = Math.min(100, Math.round((peak / 95) * 100));
+        if (meterFill) meterFill.style.width = `${levelPct}%`;
+
+        // Adaptive noise floor + transient onset flux
+        const sens = coachState.micSensitivity; // 15..90
+        const threshold = Math.max(8, (100 - sens) * 0.55 + coachState.noiseFloor * 1.35);
+        const flux = peak - coachState.prevMicEnergy;
+        const nowMs = performance.now();
+
+        if (peak < coachState.noiseFloor + 12) {
+          coachState.noiseFloor = coachState.noiseFloor * 0.96 + peak * 0.04;
+        }
+
+        if (
+          peak > threshold &&
+          flux > Math.max(6, threshold * 0.32) &&
+          nowMs - coachState.lastMicTriggerMs > 78
+        ) {
+          coachState.lastMicTriggerMs = nowMs;
+
+          // 3-Band Spectral Classification (Kick vs Snare/Tom vs Hi-Hat/Cymbal)
+          let lowSum = 0;
+          let midSum = 0;
+          let highSum = 0;
+          for (let b = 1; b <= 4; b++) lowSum += freqData[b]; // ~43-172 Hz
+          for (let b = 5; b <= 36; b++) midSum += freqData[b]; // ~215-1550 Hz
+          for (let b = 65; b <= 220; b++) highSum += freqData[b]; // ~2.8k-9.5k Hz
+
+          const lowAvg = lowSum / 4;
+          const midAvg = midSum / 32;
+          const highAvg = highSum / 156;
+
+          let detectedDrum = 'S';
+          if (lowAvg > midAvg * 1.35 && lowAvg > highAvg * 1.6) {
+            detectedDrum = 'B';
+          } else if (highAvg > midAvg * 1.15 && highAvg > lowAvg * 0.9) {
+            detectedDrum = 'X';
+          } else {
+            detectedDrum = 'S';
+          }
+
+          registerUserDrumStrike(detectedDrum, 'mic');
+        }
+
+        coachState.prevMicEnergy = peak;
+        coachState.micRafId = requestAnimationFrame(sampleMic);
+      };
+
+      coachState.micRafId = requestAnimationFrame(sampleMic);
+    } catch (err) {
+      alert(
+        'Microphone access was blocked or unavailable. Please allow microphone access in your browser bar, or use USB-MIDI / Keyboard keys (B, S, X)!'
+      );
+    }
+  }
+
+  function setupWebMidiDrums() {
+    if (!navigator.requestMIDIAccess) return;
+    navigator
+      .requestMIDIAccess()
+      .then((midiAccess) => {
+        const midiPill = document.getElementById('coach-midi-status');
+        const gmMap = {
+          35: 'B', 36: 'B',
+          37: 'S', 38: 'S', 40: 'S',
+          42: 'X', 44: 'X', 46: 'O',
+          48: 'T1', 50: 'T1',
+          45: 'T2', 47: 'T2',
+          41: 'FT', 43: 'FT',
+          49: 'C', 52: 'C', 55: 'C', 57: 'C',
+          51: 'R', 53: 'R', 59: 'R'
+        };
+
+        const attachInputs = () => {
+          let count = 0;
+          midiAccess.inputs.forEach((input) => {
+            count++;
+            input.onmidimessage = (msg) => {
+              const [status, note, velocity] = msg.data;
+              const cmd = status & 0xf0;
+              if (cmd === 0x90 && velocity > 8) {
+                const drumCode = gmMap[note] || 'S';
+                engine.triggerDrum(drumCode);
+                registerUserDrumStrike(drumCode, 'midi');
+              }
+            };
+          });
+          coachState.midiConnected = count > 0;
+          if (midiPill) {
+            midiPill.classList.toggle('connected', count > 0);
+            midiPill.textContent =
+              count > 0 ? '🔌 USB-MIDI Kit Connected' : '⌨️ Keys / MIDI Ready';
+          }
+        };
+
+        attachInputs();
+        midiAccess.onstatechange = attachInputs;
+      })
+      .catch(() => {});
+  }
+
+  function setupLiveDrumCoach() {
+    const btnMic = document.getElementById('btn-coach-mic');
+    const btnAuto = document.getElementById('btn-coach-autoloop');
+    const btnReset = document.getElementById('btn-coach-reset');
+    const sensSlider = document.getElementById('coach-mic-sens');
+
+    if (btnMic) {
+      btnMic.addEventListener('click', toggleMicListening);
+    }
+
+    if (btnAuto) {
+      btnAuto.addEventListener('click', () => {
+        coachState.autoCoach = !coachState.autoCoach;
+        btnAuto.classList.toggle('active', coachState.autoCoach);
+        if (coachState.autoCoach) {
+          setLockTwoBars(true);
+          setCoachGuidanceMessage(
+            state.lang === 'ar'
+              ? '🧘 <strong>المدرب الذكي شغال:</strong> هيمسك المازورتين الحاليين ويعيدهم لحد ما تجيب دقة <strong>80%+</strong> وبعدين ينقلك تلقائياً للمازورتين اللي بعدهم!'
+              : '🧘 <strong>Auto-Coach Active:</strong> Holding the current 2 bars until you reach <strong>80%+ accuracy</strong>, then automatically advancing +2 bars through the song!'
+          );
+          if (!coachState.micActive && !coachState.midiConnected) {
+            toggleMicListening();
+          }
+        } else {
+          setLockTwoBars(false);
+        }
+      });
+    }
+
+    if (sensSlider) {
+      sensSlider.addEventListener('input', (e) => {
+        coachState.micSensitivity = parseInt(e.target.value, 10) || 55;
+      });
+    }
+
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        coachState.sessionHits = 0;
+        coachState.sessionMisses = 0;
+        coachState.streak = 0;
+        coachState.timingOffsets = [];
+        coachState.passHits = 0;
+        coachState.passMisses = 0;
+        clearPassStepVisuals();
+        updateCoachScoreboardUI('--');
+      });
+    }
+
+    setupWebMidiDrums();
   }
 
   function updateMasteredBadge() {
