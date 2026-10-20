@@ -49,9 +49,9 @@ FRET_MAP = {
     57: "C",   # Crash Cymbal 2
     52: "C",   # Chinese Cymbal
     55: "C",   # Splash Cymbal
-    51: "R",   # Ride Cymbal 1
-    53: "R",   # Ride Bell
-    59: "R",   # Ride Cymbal 2
+    51: "X",   # Ride Cymbal 1 -> Mapped to Hi-Hat (X) for 5-Piece Kit without Ride
+    53: "X",   # Ride Bell -> Mapped to Hi-Hat (X)
+    59: "X",   # Ride Cymbal 2 -> Mapped to Hi-Hat (X)
     48: "T1",  # Hi-Mid Tom (High Tom 1)
     50: "T1",  # High Tom
     45: "T2",  # Low Tom (Mid Tom 2)
@@ -60,7 +60,7 @@ FRET_MAP = {
     43: "FT",  # High Floor Tom
 }
 
-SYMBOL_ORDER = ["C", "R", "X", "O", "S", "g", "T1", "T2", "FT", "B"]
+SYMBOL_ORDER = ["C", "X", "O", "S", "g", "T1", "T2", "FT", "B"]
 DEFAULT_GUITAR_TUNING = [64, 59, 55, 50, 45, 40]
 
 

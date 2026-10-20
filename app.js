@@ -1810,7 +1810,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
 
   const TAB_TRACKS = [
-    { id: 'C', label: 'Crash (C)', codes: ['C', 'R'] },
+    { id: 'C', label: 'Crash (C)', codes: ['C'] },
     { id: 'HH', label: 'Hi-Hat (X/O)', codes: ['X', 'O'] },
     { id: 'SN', label: 'Snare (S/g)', codes: ['S', 'g'] },
     { id: 'T1', label: 'High Tom (T1)', codes: ['T1'] },
@@ -1962,7 +1962,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   engine.onDrumTriggerCallback = (drumCode) => {
-    const normalized = drumCode === 'g' ? 'S' : drumCode === 'O' ? 'X' : drumCode;
+    const normalized = drumCode === 'g' ? 'S' : drumCode === 'O' || drumCode === 'R' ? 'X' : drumCode;
     const svgGroup = document.querySelector(`.kit-piece[data-drum="${normalized}"]`);
     if (!svgGroup) return;
     svgGroup.classList.remove('kit-hit');
@@ -1988,7 +1988,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const activeNormalized = new Set(
-      (step.drums || []).map((d) => (d === 'g' ? 'S' : d === 'O' ? 'X' : d))
+      (step.drums || []).map((d) => (d === 'g' ? 'S' : d === 'O' || d === 'R' ? 'X' : d))
     );
     document.querySelectorAll('.kit-piece').forEach((piece) => {
       const isHit = activeNormalized.has(piece.dataset.drum);

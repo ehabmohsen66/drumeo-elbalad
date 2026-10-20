@@ -7,7 +7,6 @@ const DRUM_KEY_LEGEND = [
   { code: 'X', name: 'Closed Hi-Hat', ar: 'هاي هات مقفول', limb: 'R Hand', color: '#38bdf8' },
   { code: 'O', name: 'Open Hi-Hat', ar: 'هاي هات مفتوح', limb: 'R Hand + L Foot', color: '#0ea5e9' },
   { code: 'C', name: 'Crash Cymbal', ar: 'كراش سيمبال', limb: 'R/L Hand', color: '#fbbf24' },
-  { code: 'R', name: 'Ride Cymbal', ar: 'رايد سيمبال', limb: 'R Hand', color: '#f59e0b' },
   { code: 'S', name: 'Snare Drum', ar: 'سنيير أساسي', limb: 'L/R Hand', color: '#ef4444' },
   { code: 'g', name: 'Ghost Snare', ar: 'جوست نوت خفيفة', limb: 'L Hand (soft)', color: '#f87171' },
   { code: 'T1', name: 'High Tom (1)', ar: 'التوم الصغير ١', limb: 'R/L Hand', color: '#a855f7' },
@@ -43,7 +42,7 @@ function parseTokenToDrums(rawToken) {
     if (ch === 'X') drums.push('X');
     else if (ch === 'O') drums.push('O');
     else if (ch === 'C') drums.push('C');
-    else if (ch === 'R') drums.push('R');
+    else if (ch === 'R') drums.push('X'); // Simple 5-piece kit without Ride -> play on Hi-Hat (X)
     else if (ch === 'S') drums.push('S');
     else if (ch === 'g') drums.push('g');
     else if (ch === 'B' || ch === 'K') drums.push('B');
@@ -56,8 +55,9 @@ function parseTokenToDrums(rawToken) {
 
 function formatDrumsToToken(drums) {
   if (!drums || drums.length === 0) return '—';
-  const order = ['C', 'R', 'X', 'O', 'S', 'g', 'T1', 'T2', 'FT', 'B'];
-  const sorted = [...drums].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  const mapped = [...new Set(drums.map((d) => (d === 'R' ? 'X' : d)))];
+  const order = ['C', 'X', 'O', 'S', 'g', 'T1', 'T2', 'FT', 'B'];
+  const sorted = mapped.sort((a, b) => order.indexOf(a) - order.indexOf(b));
   return sorted.join('');
 }
 
