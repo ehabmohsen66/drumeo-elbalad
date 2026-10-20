@@ -530,6 +530,9 @@ document.addEventListener('DOMContentLoaded', () => {
     walkMode: true,
     currentPairStartBar: 0,
     activeBarIndexInSong: 0,
+    playScope: 'full', // 'full' | 'section' | '2bars'
+    activeSectionIndex: -1,
+    activeSectionRange: null,
     lockTwoBars: false,
     guideDrumsEnabled: true,
     mode: 'original', // 'original' | 'drumless' | 'synth'
@@ -548,18 +551,99 @@ document.addEventListener('DOMContentLoaded', () => {
     errorRetries: 0
   };
 
-  function setLockTwoBars(locked) {
-    rtState.lockTwoBars = !!locked;
+  function getSectionRange(secIdx, sections, totalBars) {
+    if (!sections || sections.length === 0 || secIdx < 0 || secIdx >= sections.length) {
+      return { secIndex: -1, startBarIdx: 0, endBarIdx: totalBars, title: 'Full Song', titleAr: 'الأغنية كاملة', isFill: false };
+    }
+    const cur = sections[secIdx];
+    const startBarIdx = Math.max(0, cur.barIndex);
+    let endBarIdx = totalBars;
+
+    for (let i = secIdx + 1; i < sections.length; i++) {
+      if (sections[i].barIndex > startBarIdx) {
+        if (cur.isFill) {
+          endBarIdx = sections[i].barIndex;
+          break;
+        } else {
+          // If current is a major section and next is an internal fill, include the fill in the section!
+          if (sections[i].isFill && i + 1 < sections.length && sections[i + 1].barIndex > sections[i].barIndex) {
+            continue;
+          }
+          endBarIdx = sections[i].barIndex;
+          break;
+        }
+      }
+    }
+
+    return {
+      secIndex: secIdx,
+      startBarIdx,
+      endBarIdx: Math.max(startBarIdx + 1, endBarIdx),
+      title: cur.title,
+      titleAr: cur.titleAr || cur.title,
+      isFill: !!cur.isFill
+    };
+  }
+
+  function setPlayScope(scope, secIdx = null) {
+    rtState.playScope = scope; // 'full' | 'section' | '2bars'
+    rtState.lockTwoBars = (scope === '2bars');
+
+    const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
+    const sections = (lesson && lesson.sections) || rtState.sections || [];
+    const totalBars = (rtState.allBars && rtState.allBars.length) || 64;
+
+    if (scope === 'section') {
+      let targetSecIdx = secIdx !== null ? secIdx : rtState.activeSectionIndex;
+      if (targetSecIdx < 0 && sections.length > 0) {
+        const curBar = rtState.currentPairStartBar || rtState.firstDrumBarIndex || 0;
+        targetSecIdx = 0;
+        for (let i = 0; i < sections.length; i++) {
+          if (sections[i].barIndex <= curBar) {
+            targetSecIdx = i;
+          } else {
+            break;
+          }
+        }
+      }
+      rtState.activeSectionIndex = targetSecIdx;
+      rtState.activeSectionRange = getSectionRange(targetSecIdx, sections, totalBars);
+    } else if (scope === 'full') {
+      rtState.activeSectionRange = null;
+    }
+
+    syncPlayScopeUI();
+  }
+
+  function syncPlayScopeUI() {
     const btn = document.getElementById('btn-walk-lock-2bars');
     if (btn) {
-      btn.classList.toggle('active', rtState.lockTwoBars);
-      btn.textContent = rtState.lockTwoBars
-        ? state.lang === 'ar'
-          ? '🔁 تكرار المازورتين (شغال)'
-          : '🔁 Repeating 2 Bars'
-        : state.lang === 'ar'
-        ? '🔁 تكرار مازورتين'
-        : '🔁 Repeat 2 Bars';
+      btn.classList.toggle('active', rtState.playScope !== 'full');
+      if (rtState.playScope === 'full') {
+        btn.textContent = state.lang === 'ar' ? '🚶 الأغنية كاملة' : '🚶 Full Track';
+        btn.title = state.lang === 'ar' ? 'الأغنية كاملة شغالة بدون توقف. اضغط للتبديل إلى تكرار الجزء المختار لوحده' : 'Full track active. Click to switch to Section Alone or 2-Bar loop';
+      } else if (rtState.playScope === 'section') {
+        const secName = rtState.activeSectionRange ? rtState.activeSectionRange.title.replace(/\(.*?\)/g, '').trim() : 'Section';
+        btn.textContent = state.lang === 'ar' ? `🔁 ${secName} لوحده` : `🔁 ${secName} Alone`;
+        btn.title = state.lang === 'ar' ? 'تكرار هذا الجزء لوحده. اضغط للتبديل إلى تكرار مازورتين أو الأغنية كاملة' : 'Looping this section alone. Click to switch to 2-Bar loop or Full Track';
+      } else {
+        btn.textContent = state.lang === 'ar' ? '⭐ تكرار مازورتين' : '⭐ 2-Bar Loop';
+        btn.title = state.lang === 'ar' ? 'تكرار مازورتين فقط. اضغط للتبديل إلى الأغنية كاملة' : 'Looping 2 bars. Click to switch to Full Track';
+      }
+    }
+    const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
+    if (lesson && isLessonSong(lesson)) {
+      updateWalkProgressUI(rtState.activeBarIndexInSong || rtState.currentPairStartBar, null);
+    }
+  }
+
+  function setLockTwoBars(locked) {
+    if (locked) {
+      setPlayScope('2bars');
+    } else {
+      if (rtState.playScope === '2bars') {
+        setPlayScope('full');
+      }
     }
   }
 
@@ -613,11 +697,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const barObj = rtState.allBars[clampedBar] || {};
     const barReadout = document.getElementById('walk-bar-readout');
     if (barReadout) {
-      const secName = barObj.marker ? ` • ${barObj.marker}` : '';
-      barReadout.textContent =
-        state.lang === 'ar'
-          ? `🚶 مازورة ${clampedBar + 1} / ${totalBars}${secName}`
-          : `🚶 Bar ${clampedBar + 1} / ${totalBars}${secName}`;
+      if (rtState.playScope === 'section' && rtState.activeSectionRange) {
+        const sec = rtState.activeSectionRange;
+        const cleanName = (state.lang === 'ar' && sec.titleAr ? sec.titleAr : sec.title).replace(/\(.*?\)/g, '').trim();
+        barReadout.textContent =
+          state.lang === 'ar'
+            ? `🔁 ${cleanName} لوحده (مازورة ${clampedBar + 1} / ${sec.endBarIdx}) • تكرار`
+            : `🔁 ${cleanName} Alone (Bar ${clampedBar + 1} / ${sec.endBarIdx}) • Looping`;
+      } else if (rtState.playScope === '2bars') {
+        barReadout.textContent =
+          state.lang === 'ar'
+            ? `⭐ تكرار مازورتين (مازورة ${clampedBar + 1} و ${clampedBar + 2})`
+            : `⭐ 2-Bar Loop (Bars ${clampedBar + 1} & ${clampedBar + 2})`;
+      } else {
+        const secName = barObj.marker ? ` • ${barObj.marker}` : '';
+        barReadout.textContent =
+          state.lang === 'ar'
+            ? `🚶 الأغنية كاملة: مازورة ${clampedBar + 1} / ${totalBars}${secName}`
+            : `🚶 Full Song: Bar ${clampedBar + 1} / ${totalBars}${secName}`;
+      }
     }
 
     const timeReadout = document.getElementById('walk-time-readout');
@@ -723,15 +821,25 @@ document.addEventListener('DOMContentLoaded', () => {
           const totalBars = rtState.allBars.length;
           const nPts = Math.min(pts.length, totalBars);
 
-          // 1. Check 2-Bar Repeat Loop (🔁 Repeat 2 Bars)
-          if (rtState.lockTwoBars && nPts > 0) {
-            const lockStartBar = rtState.currentPairStartBar;
-            const lockEndBar = Math.min(nPts - 1, lockStartBar + 2);
-            const startSec = Math.max(0, pts[lockStartBar] ?? 0);
+          // 1. Check Loop Boundaries (Full Track vs Section Alone vs 2 Bars)
+          let loopStartBar = -1;
+          let loopEndBar = -1;
+
+          if (rtState.playScope === '2bars') {
+            loopStartBar = rtState.currentPairStartBar;
+            loopEndBar = Math.min(nPts, loopStartBar + 2);
+          } else if (rtState.playScope === 'section' && rtState.activeSectionRange) {
+            loopStartBar = rtState.activeSectionRange.startBarIdx;
+            loopEndBar = Math.min(nPts, rtState.activeSectionRange.endBarIdx);
+          }
+
+          if (loopStartBar >= 0 && loopEndBar > loopStartBar && nPts > 0) {
+            const startSec = Math.max(0, pts[loopStartBar] ?? 0);
             const endSec =
-              lockStartBar + 2 < pts.length
-                ? pts[lockStartBar + 2]
-                : (pts[lockEndBar] ?? startSec) + 2.3;
+              loopEndBar < pts.length
+                ? pts[loopEndBar]
+                : (pts[nPts - 1] ?? startSec) + 2.3;
+
             if (curTime >= endSec || curTime < startSec - 0.5) {
               if (rtState.ytPlayer && typeof rtState.ytPlayer.seekTo === 'function') {
                 try {
@@ -741,6 +849,13 @@ document.addEventListener('DOMContentLoaded', () => {
               rtState.lastRawYtTime = startSec;
               rtState.lastRawPerfSec = nowSec;
               rtState.lastSyncedGlobalStep = -1;
+
+              if (rtState.currentPairStartBar !== loopStartBar) {
+                setWalkPairWindow(loopStartBar, false);
+                const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
+                if (lesson) renderSongPartsBar(lesson);
+              }
+
               rtState.rafId = requestAnimationFrame(tick);
               return;
             }
@@ -781,10 +896,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const desiredPairStart =
               rel >= 0 ? baseBar + Math.floor(rel / 2) * 2 : Math.floor(barIdx / 2) * 2;
 
-            if (!rtState.lockTwoBars && rtState.currentPairStartBar !== desiredPairStart) {
-              setWalkPairWindow(desiredPairStart, false);
-              const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
-              if (lesson) renderSongPartsBar(lesson);
+            if (rtState.playScope !== '2bars' && rtState.currentPairStartBar !== desiredPairStart) {
+              if (rtState.playScope === 'section' && rtState.activeSectionRange) {
+                if (desiredPairStart >= rtState.activeSectionRange.startBarIdx && desiredPairStart < rtState.activeSectionRange.endBarIdx) {
+                  setWalkPairWindow(desiredPairStart, false);
+                  const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
+                  if (lesson) renderSongPartsBar(lesson);
+                }
+              } else {
+                setWalkPairWindow(desiredPairStart, false);
+                const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
+                if (lesson) renderSongPartsBar(lesson);
+              }
             }
 
             const barOffsetInPair = barIdx === rtState.currentPairStartBar + 1 ? 1 : 0;
@@ -1097,7 +1220,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnLock2Bars) {
       btnLock2Bars.addEventListener('click', () => {
-        setLockTwoBars(!rtState.lockTwoBars);
+        if (rtState.playScope === 'full') {
+          setPlayScope('section');
+        } else if (rtState.playScope === 'section') {
+          setPlayScope('2bars');
+        } else {
+          setPlayScope('full');
+        }
         const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
         if (lesson) renderSongPartsBar(lesson);
       });
@@ -1252,8 +1381,12 @@ document.addEventListener('DOMContentLoaded', () => {
       rtState.sections = lesson.sections;
       rtState.firstDrumBarIndex = lesson.firstDrumBarIndex;
       rtState.walkMode = true;
+      rtState.playScope = 'full';
+      rtState.activeSectionIndex = -1;
+      rtState.activeSectionRange = null;
 
       syncAudioModeUI(true);
+      syncPlayScopeUI();
       setWalkPairWindow(rtState.firstDrumBarIndex, false);
       renderSongPartsBar(lesson);
       updateLessonHeaderUI(lesson);
@@ -1334,38 +1467,73 @@ document.addEventListener('DOMContentLoaded', () => {
     barEl.innerHTML = '';
 
     if (hasWalkBars) {
-      // 1. Primary "Walk Full Song" pill
-      const walkBtn = document.createElement('button');
-      walkBtn.className = `part-pill-btn ${rtState.walkMode && !rtState.lockTwoBars ? 'active' : ''}`;
-      walkBtn.textContent =
-        state.lang === 'ar'
-          ? `🚶 المشي مع الأغنية كاملة (${lesson.allBars.length} مازورة)`
-          : `🚶 Full Song (${lesson.allBars.length} Bars)`;
-      walkBtn.addEventListener('click', () => {
-        rtState.walkMode = true;
-        setLockTwoBars(false);
-        if (rtState.mode === 'synth') {
-          setSongAudioMode('original', true);
-        }
-        setWalkPairWindow(rtState.firstDrumBarIndex || 0, true);
+      // 1. Play Scope Segment (Full Track vs Section Alone vs 2-Bar Loop)
+      const scopeWrap = document.createElement('div');
+      scopeWrap.className = 'play-scope-strip';
+
+      const scopeFullBtn = document.createElement('button');
+      scopeFullBtn.className = `scope-mode-pill ${rtState.playScope === 'full' ? 'active' : ''}`;
+      scopeFullBtn.textContent = state.lang === 'ar' ? '🚶 الأغنية كاملة' : '🚶 Full Track';
+      scopeFullBtn.title = state.lang === 'ar' ? 'تشغيل الأغنية كاملة بالتتابع بدون توقف' : 'Play through the entire song continuously';
+      scopeFullBtn.addEventListener('click', () => {
+        setPlayScope('full');
         renderSongPartsBar(lesson);
         startSelectedSectionPlayback();
       });
-      barEl.appendChild(walkBtn);
+      scopeWrap.appendChild(scopeFullBtn);
+
+      const scopeSecBtn = document.createElement('button');
+      scopeSecBtn.className = `scope-mode-pill scope-section ${rtState.playScope === 'section' ? 'active' : ''}`;
+      scopeSecBtn.textContent = state.lang === 'ar' ? '🔁 تكرار الجزء لوحده' : '🔁 Loop Section Alone';
+      scopeSecBtn.title = state.lang === 'ar' ? 'تكرار الجزء المختار فقط (مثل Verse 1 أو Drums Enter أو Chorus)' : 'Loop the selected section only (Verse 1, Drums Enter, Chorus, etc.)';
+      scopeSecBtn.addEventListener('click', () => {
+        setPlayScope('section');
+        renderSongPartsBar(lesson);
+        startSelectedSectionPlayback();
+      });
+      scopeWrap.appendChild(scopeSecBtn);
+
+      const scope2BarBtn = document.createElement('button');
+      scope2BarBtn.className = `scope-mode-pill ${rtState.playScope === '2bars' ? 'active' : ''}`;
+      scope2BarBtn.textContent = state.lang === 'ar' ? '⭐ تكرار مازورتين' : '⭐ 2-Bar Loop';
+      scope2BarBtn.title = state.lang === 'ar' ? 'تكرار المازورتين المعروضين على الشاشة' : 'Loop only the 2 bars on screen';
+      scope2BarBtn.addEventListener('click', () => {
+        setPlayScope('2bars');
+        renderSongPartsBar(lesson);
+        startSelectedSectionPlayback();
+      });
+      scopeWrap.appendChild(scope2BarBtn);
+
+      barEl.appendChild(scopeWrap);
+
+      const divider = document.createElement('div');
+      divider.className = 'parts-divider';
+      barEl.appendChild(divider);
 
       // 2. Clickable Section Jump Pills (Drums Enter, Intro, Verse, Chorus, Real Fills...)
-      (lesson.sections || []).forEach((sec) => {
+      const sections = lesson.sections || [];
+      sections.forEach((sec, idx) => {
+        const range = getSectionRange(idx, sections, lesson.allBars.length);
         const btn = document.createElement('button');
+
         const isCurrentSec =
-          rtState.walkMode &&
-          Math.abs(rtState.currentPairStartBar - sec.barIndex) <= 1;
-        btn.className = `part-pill-btn ${isCurrentSec ? 'active' : ''}`;
-        btn.textContent = state.lang === 'ar' && sec.titleAr ? sec.titleAr : sec.title;
+          (rtState.playScope === 'section' && rtState.activeSectionIndex === idx) ||
+          (rtState.playScope !== 'section' &&
+            rtState.currentPairStartBar >= range.startBarIdx &&
+            rtState.currentPairStartBar < range.endBarIdx);
+
+        btn.className = `part-pill-btn ${isCurrentSec ? 'active' : ''} ${sec.isFill ? 'fill-part' : ''}`;
+
+        const barSpan = range.endBarIdx - range.startBarIdx === 1
+          ? `Bar ${range.startBarIdx + 1}`
+          : `Bars ${range.startBarIdx + 1}–${range.endBarIdx}`;
+        const cleanTitle = (state.lang === 'ar' && sec.titleAr ? sec.titleAr : sec.title).replace(/\(.*?\)/g, '').trim();
+
+        btn.textContent = `${cleanTitle} (${barSpan})`;
         btn.addEventListener('click', () => {
-          rtState.walkMode = true;
-          // Automatically loop 2 bars if the user clicked a specific Fill, or walk forward if they clicked a Song Section!
-          setLockTwoBars(!!sec.isFill);
-          setWalkPairWindow(sec.barIndex, true);
+          // When clicking a section, isolate and loop this section alone!
+          setPlayScope('section', idx);
+          setWalkPairWindow(range.startBarIdx, true);
           renderSongPartsBar(lesson);
           startSelectedSectionPlayback();
         });
@@ -1943,16 +2111,20 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('drumeo_best_bpm', JSON.stringify(state.bestBpmByLesson));
     }
 
-    // Walk forward 2 bars automatically when playing in Walk Full Song mode!
+    // Walk forward 2 bars automatically when playing in Walk Full Song or Section Alone mode!
     if (
       rtState.walkMode &&
-      !rtState.lockTwoBars &&
+      rtState.playScope !== '2bars' &&
       !rtState.ytPlaying &&
       rtState.allBars &&
       rtState.allBars.length > 2
     ) {
       let nextPair = rtState.currentPairStartBar + 2;
-      if (nextPair >= rtState.allBars.length) {
+      if (rtState.playScope === 'section' && rtState.activeSectionRange) {
+        if (nextPair >= rtState.activeSectionRange.endBarIdx) {
+          nextPair = rtState.activeSectionRange.startBarIdx;
+        }
+      } else if (nextPair >= rtState.allBars.length) {
         nextPair = rtState.firstDrumBarIndex || 0;
       }
       setWalkPairWindow(nextPair, false);
