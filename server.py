@@ -16,10 +16,17 @@ from pathlib import Path
 
 PORT = 3030
 BASE_DIR = Path(__file__).resolve().parent
-CACHE_DIR = BASE_DIR / ".song_cache"
-CACHE_DIR.mkdir(exist_ok=True)
-SAMPLE_CACHE_DIR = BASE_DIR / ".sample_cache"
-SAMPLE_CACHE_DIR.mkdir(exist_ok=True)
+STATIC_CACHE_DIR = BASE_DIR / "song_cache"
+try:
+    CACHE_DIR = BASE_DIR / ".song_cache"
+    CACHE_DIR.mkdir(exist_ok=True)
+    SAMPLE_CACHE_DIR = BASE_DIR / ".sample_cache"
+    SAMPLE_CACHE_DIR.mkdir(exist_ok=True)
+except OSError:
+    CACHE_DIR = Path("/tmp/.song_cache")
+    CACHE_DIR.mkdir(exist_ok=True)
+    SAMPLE_CACHE_DIR = Path("/tmp/.sample_cache")
+    SAMPLE_CACHE_DIR.mkdir(exist_ok=True)
 ALLOWED_SAMPLE_INSTRUMENTS = {
     "distortion_guitar",
     "overdriven_guitar",
@@ -458,12 +465,14 @@ class DrumeoRequestHandler(http.server.SimpleHTTPRequestHandler):
                 return self.send_json({"error": "Invalid songId"}, status=400)
 
             cache_file = CACHE_DIR / f"song_v3_{song_id}.json"
-            if cache_file.exists():
-                try:
-                    cached = json.loads(cache_file.read_text("utf-8"))
-                    return self.send_json(cached)
-                except Exception:
-                    pass
+            static_cache_file = STATIC_CACHE_DIR / f"song_v3_{song_id}.json"
+            for cf in (cache_file, static_cache_file):
+                if cf.exists():
+                    try:
+                        cached = json.loads(cf.read_text("utf-8"))
+                        return self.send_json(cached)
+                    except Exception:
+                        pass
 
             try:
                 meta = http_get_json(f"https://www.songsterr.com/api/meta/{song_id}")
@@ -580,11 +589,13 @@ class DrumeoRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         key = re.sub(r"[^a-z0-9]+", "_", f"{artist}_{title}_{song_id}".lower()).strip("_")[:80]
         cache_file = CACHE_DIR / f"yt_v3_{key}.json"
-        if cache_file.exists():
-            try:
-                return self.send_json(json.loads(cache_file.read_text("utf-8")))
-            except Exception:
-                pass
+        static_cache_file = STATIC_CACHE_DIR / f"yt_v3_{song_id}.json" if song_id else None
+        for cf in (cache_file, static_cache_file):
+            if cf and cf.exists():
+                try:
+                    return self.send_json(json.loads(cf.read_text("utf-8")))
+                except Exception:
+                    pass
 
         def yt_search(query):
             url = "https://www.youtube.com/results?search_query=" + urllib.parse.quote(query)

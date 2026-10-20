@@ -1458,6 +1458,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let debounceTimer = null;
 
+    function getLocalLibraryMatches(q) {
+      const low = q.toLowerCase();
+      return (window.CURRICULUM_LESSONS || [])
+        .filter((l) => {
+          if (!isLessonSong(l)) return false;
+          const hay = `${l.band || ''} ${l.title || ''} ${l.titleAr || ''}`.toLowerCase();
+          return hay.includes(low);
+        })
+        .map((l) => ({
+          lessonId: l.id,
+          songId: l.songsterrId,
+          artist: l.band,
+          title: l.title.split('—')[0].trim(),
+          bpm: l.targetBpm,
+          isLocal: true
+        }));
+    }
+
     async function runSearch(query) {
       const q = query.trim();
       if (!q) {
@@ -1465,14 +1483,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      const localMatches = getLocalLibraryMatches(q);
+      if (localMatches.length > 0) {
+        renderSearchResultsDropdown(localMatches, q);
+      }
+
       btn.textContent = '⏳ Searching...';
       try {
         const resp = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        if (!resp.ok) throw new Error('API status ' + resp.status);
         const data = await resp.json();
-        renderSearchResultsDropdown(data.results || [], q);
+        const remoteResults = data.results || [];
+        const seenSongIds = new Set(localMatches.map((m) => Number(m.songId)).filter(Boolean));
+        const combined = [
+          ...localMatches,
+          ...remoteResults.filter((r) => !seenSongIds.has(Number(r.songId)))
+        ];
+        renderSearchResultsDropdown(combined, q);
       } catch (err) {
-        dropdown.innerHTML = `<div class="search-result-item">⚠️ Could not reach local server.</div>`;
-        dropdown.classList.remove('hidden');
+        if (localMatches.length > 0) {
+          renderSearchResultsDropdown(localMatches, q);
+        } else {
+          dropdown.innerHTML = `<div class="search-result-item">No matching tracks found for "${q}". Try another artist or song title!</div>`;
+          dropdown.classList.remove('hidden');
+        }
       } finally {
         btn.textContent = '⚡ Bring Track';
       }
@@ -1530,15 +1564,25 @@ document.addEventListener('DOMContentLoaded', () => {
     results.forEach((item) => {
       const row = document.createElement('div');
       row.className = 'search-result-item';
+      const actionBadge = item.isLocal
+        ? `✅ Play Now (${item.bpm} BPM)`
+        : '⚡ Import Full Song + Track';
       row.innerHTML = `
         <div>
           <span class="sr-title">${item.title}</span>
           <span class="sr-artist">by ${item.artist}</span>
         </div>
-        <span class="sr-action">⚡ Import Drum Tab</span>
+        <span class="sr-action">${actionBadge}</span>
       `;
       row.addEventListener('click', async () => {
-        row.querySelector('.sr-action').textContent = '⏳ Loading Tab...';
+        if (item.isLocal && item.lessonId) {
+          state.practiceMode = 'songs';
+          state.categoryFilter = 'all-songs';
+          loadLessonById(item.lessonId, 0, true);
+          dropdown.classList.add('hidden');
+          return;
+        }
+        row.querySelector('.sr-action').textContent = '⏳ Loading Tab + Track...';
         await fetchAndImportSongById(item.songId);
         dropdown.classList.add('hidden');
       });
@@ -1556,8 +1600,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const url = songId
         ? `/api/song?songId=${encodeURIComponent(songId)}`
         : `/api/song?q=${encodeURIComponent(queryFallback)}`;
-      const resp = await fetch(url);
-      const data = await resp.json();
+      let data = null;
+      try {
+        const resp = await fetch(url);
+        if (resp.ok) data = await resp.json();
+      } catch (_) {}
+      if (!data && songId) {
+        try {
+          const fallbackResp = await fetch(`song_cache/song_v3_${songId}.json`);
+          if (fallbackResp.ok) data = await fallbackResp.json();
+        } catch (_) {}
+      }
       if (!data || !data.parts || data.parts.length === 0) {
         alert('Could not parse drum parts for this track.');
         return;
@@ -1592,7 +1645,12 @@ document.addEventListener('DOMContentLoaded', () => {
             bars: existing.bars
           };
           existing.parts = [corePart, ...attachFallbackRiff(existing, data.parts)];
-          loadLessonById(existing.id, 1);
+          if (data.allBars && data.allBars.length > 0) {
+            existing.allBars = data.allBars;
+            existing.sections = data.sections || [];
+            existing.firstDrumBarIndex = data.firstDrumBarIndex || 0;
+          }
+          loadLessonById(existing.id, 0, true);
           return;
         }
       }
@@ -1605,7 +1663,12 @@ document.addEventListener('DOMContentLoaded', () => {
           bars: match.bars
         };
         match.parts = [corePart, ...attachFallbackRiff(match, data.parts)];
-        loadLessonById(match.id, 0);
+        if (data.allBars && data.allBars.length > 0) {
+          match.allBars = data.allBars;
+          match.sections = data.sections || [];
+          match.firstDrumBarIndex = data.firstDrumBarIndex || 0;
+        }
+        loadLessonById(match.id, 0, true);
         return;
       }
 
@@ -1614,15 +1677,18 @@ document.addEventListener('DOMContentLoaded', () => {
         songsterrId: data.songId,
         category: 'nu-metal',
         band: data.artist,
-        title: `${data.title} — Real Drum Track (${data.parts.length} Parts)`,
-        titleAr: `${data.artist} - ${data.title} (${data.parts.length} أجزاء وفلات حقيقية)`,
+        title: `${data.title} — Real Drum Track (${(data.allBars || []).length || data.parts.length} Bars)`,
+        titleAr: `${data.artist} - ${data.title} (تابه الدرامز الكاملة)`,
         startBpm: data.startBpm,
         targetBpm: data.targetBpm,
         kitFocus: 'Full 5-Piece Kit',
-        coachTipEn: `Imported directly from ${data.artist}'s recorded drum tab at ${data.targetBpm} BPM! Use the section buttons above the Play button to switch between Intro, Verse, Chorus, and Real Fills.`,
-        coachTipAr: `تم سحب تابه الدرامز الحقيقية لأغنية ${data.title} على سرعة ${data.targetBpm} BPM! استخدم الأزرار فوق زرار Play للتنقل بين أجزاء الأغنية والفلات.`,
+        coachTipEn: `Imported directly from ${data.artist}'s recorded drum tab at ${data.targetBpm} BPM! Walks bar-by-bar with the Original Song or Drumless Track.`,
+        coachTipAr: `تم سحب تابه الدرامز الحقيقية لأغنية ${data.title} على سرعة ${data.targetBpm} BPM! تمشي مازورة بمازورة مع الأغنية الأصلية أو تراك بدون درامز.`,
         bars: data.parts[0].bars,
-        parts: data.parts
+        parts: data.parts,
+        allBars: data.allBars || [],
+        sections: data.sections || [],
+        firstDrumBarIndex: data.firstDrumBarIndex || 0
       };
 
       window.CURRICULUM_LESSONS.unshift(newLesson);
@@ -1630,11 +1696,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const saved = JSON.parse(localStorage.getItem('drumeo_fetched_songs') || '[]');
       const filteredSaved = saved.filter((s) => s.id !== newLesson.id);
       filteredSaved.unshift(newLesson);
-      localStorage.setItem('drumeo_fetched_songs', JSON.stringify(filteredSaved.slice(0, 30)));
+      localStorage.setItem('drumeo_fetched_songs', JSON.stringify(filteredSaved.slice(0, 20)));
 
       state.practiceMode = 'songs';
       state.categoryFilter = 'all-songs';
-      loadLessonById(newLesson.id, 0);
+      loadLessonById(newLesson.id, 0, true);
     } catch (err) {
       console.error('Error importing song:', err);
     }
