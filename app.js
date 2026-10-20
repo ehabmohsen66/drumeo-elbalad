@@ -1145,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadRealTrackForLesson(lesson, shouldAutoPlay = false) {
+    cancelCountIn();
     const statusEl = document.getElementById('rt-status');
     const isSong = isLessonSong(lesson);
 
@@ -1292,26 +1293,30 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function startSelectedSectionPlayback() {
-    const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
-    const isSong = isLessonSong(lesson);
-    if (isSong && (rtState.mode === 'original' || rtState.mode === 'drumless')) {
-      if (rtState.ytPlayer && typeof rtState.ytPlayer.playVideo === 'function') {
-        try {
-          rtState.ytPlayer.playVideo();
-          rtState.ytActive = true;
-          rtState.ytPlaying = true;
-          updatePlayButtonUI(true);
-          startWalkAlongRaf();
-          return;
-        } catch (_) {}
+    const launchNow = () => {
+      const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
+      const isSong = isLessonSong(lesson);
+      if (isSong && (rtState.mode === 'original' || rtState.mode === 'drumless')) {
+        if (rtState.ytPlayer && typeof rtState.ytPlayer.playVideo === 'function') {
+          try {
+            rtState.ytPlayer.playVideo();
+            rtState.ytActive = true;
+            rtState.ytPlaying = true;
+            updatePlayButtonUI(true);
+            startWalkAlongRaf();
+            return;
+          } catch (_) {}
+        }
+        setSongAudioMode(rtState.mode, true);
+        return;
       }
-      setSongAudioMode(rtState.mode, true);
-      return;
-    }
-    if (!engine.isPlaying) {
-      engine.start();
-      updatePlayButtonUI(true);
-    }
+      if (!engine.isPlaying) {
+        engine.start();
+        updatePlayButtonUI(true);
+      }
+    };
+
+    runCountInThenStart(launchNow);
   }
 
   function renderSongPartsBar(lesson) {
@@ -2064,7 +2069,122 @@ document.addEventListener('DOMContentLoaded', () => {
   // TRANSPORT & SIDEBAR
   // ==========================================================================
 
+  const countInState = {
+    enabled: true,
+    active: false,
+    timers: []
+  };
+
+  function cancelCountIn() {
+    countInState.active = false;
+    countInState.timers.forEach((t) => clearTimeout(t));
+    countInState.timers = [];
+    const banner = document.getElementById('countin-banner');
+    if (banner) banner.classList.add('hidden');
+  }
+
+  function runCountInThenStart(startCallback) {
+    cancelCountIn();
+
+    if (!countInState.enabled) {
+      startCallback();
+      return;
+    }
+
+    const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
+    const isSong = isLessonSong(lesson);
+
+    // Pause any running audio while counting 1-2-3-4
+    if (engine.isPlaying) engine.stop();
+    if (rtState.ytPlayer && typeof rtState.ytPlayer.pauseVideo === 'function') {
+      try {
+        rtState.ytPlayer.pauseVideo();
+      } catch (_) {}
+    }
+    rtState.ytPlaying = false;
+
+    // Preview Step 0 on the Letter Notation & 5-Piece Kit so the drummer sees Beat 1 before it starts
+    if (state.activeSteps[0]) {
+      highlightStepVisuals(0, state.activeSteps[0]);
+    }
+
+    // Compute exact beat duration (ms) matching the song/drill tempo & speed
+    let beatMs = Math.round(60000 / Math.max(45, engine.bpm || 95));
+    if (isSong && (rtState.mode === 'original' || rtState.mode === 'drumless')) {
+      const rate = parseFloat(document.getElementById('rt-speed')?.value || '1') || 1;
+      const pts = getActiveSyncPoints();
+      const bIdx = rtState.currentPairStartBar || 0;
+      const barSec =
+        pts[bIdx + 1] && pts[bIdx] !== undefined && pts[bIdx + 1] > pts[bIdx]
+          ? pts[bIdx + 1] - pts[bIdx]
+          : 240 / (lesson?.targetBpm || engine.targetBpm || 100);
+      beatMs = Math.round(((barSec / 4) * 1000) / rate);
+      beatMs = Math.max(320, Math.min(1100, beatMs));
+    }
+
+    const banner = document.getElementById('countin-banner');
+    const firstHitEl = document.getElementById('countin-first-hit');
+    const firstStep = state.activeSteps[0];
+    if (firstHitEl && firstStep) {
+      firstHitEl.textContent =
+        state.lang === 'ar'
+          ? `أول ضربة (عدة 1): ${firstStep.token} (${firstStep.sticking || 'R'})`
+          : `🎯 First Hit (Beat 1): ${firstStep.token} (${firstStep.sticking || 'R'})`;
+    }
+
+    if (banner) {
+      banner.classList.remove('hidden');
+      banner.querySelectorAll('.countin-num').forEach((el) => {
+        el.classList.remove('active', 'done');
+      });
+    }
+
+    countInState.active = true;
+    updatePlayButtonUI(true);
+    engine.init();
+
+    for (let b = 1; b <= 4; b++) {
+      const tid = setTimeout(() => {
+        if (!countInState.active) return;
+
+        // Avoid mic counting the count-in stick click as a user hit
+        coachState.lastMicTriggerMs = performance.now();
+
+        engine._playClick(engine.ctx.currentTime, b === 1 ? 'downbeat' : 'beat');
+        engine.triggerDrum('X');
+
+        if (banner) {
+          banner.querySelectorAll('.countin-num').forEach((el) => {
+            const num = parseInt(el.dataset.beat, 10);
+            el.classList.toggle('active', num === b);
+            el.classList.toggle('done', num < b);
+          });
+        }
+
+        const phrasePill = document.getElementById('live-phrase-banner');
+        if (phrasePill) {
+          phrasePill.className = 'live-status-pill status-fill';
+          phrasePill.textContent = `🥢 COUNT-IN: ${b} / 4 — GET STICKS READY!`;
+        }
+      }, (b - 1) * beatMs);
+      countInState.timers.push(tid);
+    }
+
+    const startTid = setTimeout(() => {
+      if (!countInState.active) return;
+      cancelCountIn();
+      startCallback();
+    }, 4 * beatMs);
+    countInState.timers.push(startTid);
+  }
+
   function toggleMasterPlayback() {
+    if (countInState.active) {
+      cancelCountIn();
+      updatePlayButtonUI(false);
+      return;
+    }
+
     const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
     const isSong = isLessonSong(lesson);
 
@@ -2078,31 +2198,33 @@ document.addEventListener('DOMContentLoaded', () => {
         rtState.ytPlaying = false;
         updatePlayButtonUI(false);
       } else {
-        if (engine.isPlaying) engine.stop();
-        if (rtState.ytPlayer && typeof rtState.ytPlayer.playVideo === 'function') {
-          const pts = getActiveSyncPoints();
-          const targetSec = pts[rtState.currentPairStartBar] || 0;
-          const cur =
-            (typeof rtState.ytPlayer.getCurrentTime === 'function'
-              ? rtState.ytPlayer.getCurrentTime()
-              : 0) || 0;
-          if (targetSec > 1 && cur < 1.5) {
+        runCountInThenStart(() => {
+          if (engine.isPlaying) engine.stop();
+          if (rtState.ytPlayer && typeof rtState.ytPlayer.playVideo === 'function') {
+            const pts = getActiveSyncPoints();
+            const targetSec = pts[rtState.currentPairStartBar] || 0;
+            const cur =
+              (typeof rtState.ytPlayer.getCurrentTime === 'function'
+                ? rtState.ytPlayer.getCurrentTime()
+                : 0) || 0;
+            if (targetSec > 1 && cur < 1.5) {
+              try {
+                rtState.ytPlayer.seekTo(targetSec, true);
+                rtState.lastRawYtTime = targetSec;
+                rtState.lastRawPerfSec = performance.now() / 1000;
+              } catch (_) {}
+            }
             try {
-              rtState.ytPlayer.seekTo(targetSec, true);
-              rtState.lastRawYtTime = targetSec;
-              rtState.lastRawPerfSec = performance.now() / 1000;
+              rtState.ytPlayer.playVideo();
             } catch (_) {}
+            rtState.ytActive = true;
+            rtState.ytPlaying = true;
+            updatePlayButtonUI(true);
+            startWalkAlongRaf();
+          } else {
+            setSongAudioMode(rtState.mode, true);
           }
-          try {
-            rtState.ytPlayer.playVideo();
-          } catch (_) {}
-          rtState.ytActive = true;
-          rtState.ytPlaying = true;
-          updatePlayButtonUI(true);
-          startWalkAlongRaf();
-        } else {
-          setSongAudioMode(rtState.mode, true);
-        }
+        });
       }
       return;
     }
@@ -2113,7 +2235,16 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (_) {}
     }
     rtState.ytPlaying = false;
-    updatePlayButtonUI(engine.toggle());
+
+    if (engine.isPlaying) {
+      engine.stop();
+      updatePlayButtonUI(false);
+    } else {
+      runCountInThenStart(() => {
+        engine.start();
+        updatePlayButtonUI(true);
+      });
+    }
   }
 
   function bindTransportAndControls() {
@@ -2149,6 +2280,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
       if (lesson) engine.setBpm(lesson.targetBpm);
     });
+
+    const btnCountIn = document.getElementById('btn-toggle-countin');
+    if (btnCountIn) {
+      btnCountIn.addEventListener('click', () => {
+        countInState.enabled = !countInState.enabled;
+        btnCountIn.classList.toggle('active', countInState.enabled);
+      });
+    }
 
     const bindToggle = (id, prop) => {
       const el = document.getElementById(id);

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DRUMEO AL-BALAD — 3-Month Metal &amp; 2000s Drum Teaching System</title>
-  <link rel="stylesheet" href="styles.css?v=14" />
+  <link rel="stylesheet" href="styles.css?v=15" />
 </head>
 <body>
   <!-- COMPACT SINGLE-LINE TOP BAR -->
@@ -180,8 +180,11 @@
                 <button id="btn-jump-target-bpm" class="bpm-chip target">Real: <span id="target-bpm-val">105</span></button>
               </div>
 
-              <!-- 3 Simple, Understandable Toggles -->
+              <!-- Simple, Understandable Toggles -->
               <div class="toggles-row">
+                <button id="btn-toggle-countin" class="pill-toggle active" title="Count 1 - 2 - 3 - 4 with drumstick clicks before the song or drill starts so you are ready!">
+                  🥢 1-2-3-4 Count-In
+                </button>
                 <button id="btn-walk-lock-2bars" class="pill-toggle" title="Turn ON to repeat the current 2 bars over and over; leave OFF to walk through the whole song!">
                   🔁 Repeat 2 Bars
                 </button>
@@ -286,6 +289,18 @@
           <div class="stage-bar-top">
             <span class="stage-label">🥁 Step 1: Follow the Letter Notation (2 Bars at a Time — Walks With the Song!)</span>
             <span id="live-phrase-banner" class="live-status-pill">Press ▶ PLAY (or Spacebar)</span>
+          </div>
+
+          <!-- 1-2-3-4 STICK COUNT-IN OVERLAY BANNER -->
+          <div id="countin-banner" class="countin-banner hidden">
+            <span class="countin-title">🥢 GET READY (STICKS UP!):</span>
+            <div class="countin-numbers">
+              <span class="countin-num" data-beat="1">1</span>
+              <span class="countin-num" data-beat="2">2</span>
+              <span class="countin-num" data-beat="3">3</span>
+              <span class="countin-num" data-beat="4">4</span>
+            </div>
+            <span id="countin-first-hit" class="countin-first-hit">First Hit: XB</span>
           </div>
 
           <div id="letter-notation-bars" class="letter-bars-stack">
@@ -433,8 +448,8 @@
     </section>
   </main>
 
-  <script src="audioEngine.js?v=14"></script>
-  <script src="curriculumData.js?v=14"></script>
-  <script src="app.js?v=14"></script>
+  <script src="audioEngine.js?v=15"></script>
+  <script src="curriculumData.js?v=15"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>
