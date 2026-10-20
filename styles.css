@@ -857,14 +857,18 @@ body {
 }
 
 .step-desc-row {
-  font-size: 0.56rem;
+  font-size: 0.58rem;
   font-weight: 800;
   color: #38bdf8;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 0 1px;
-  line-height: 1.1;
+  white-space: normal;
+  word-break: keep-all;
+  padding: 1px 2px;
+  line-height: 1.15;
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   margin-bottom: 2px;
 }
 

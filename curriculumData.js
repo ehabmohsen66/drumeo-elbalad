@@ -89,19 +89,19 @@ function getDrumDescNames(drums, lang = 'en') {
     B: 'Kick',
     S: 'Snare',
     g: 'Ghost',
-    X: 'HiHat',
+    X: 'Hat',
     O: 'OpenHat',
     C: 'Crash',
-    T1: 'HighTom',
-    T2: 'MidTom',
-    FT: 'FloorTom'
+    T1: 'Tom 1',
+    T2: 'Tom 2',
+    FT: 'Floor'
   };
   const mapAr = {
     B: 'كيك',
     S: 'سنير',
     g: 'جوست',
-    X: 'هاي-هات',
-    O: 'هات-مفتوح',
+    X: 'هات',
+    O: 'مفتوح',
     C: 'كراش',
     T1: 'توم١',
     T2: 'توم٢',
