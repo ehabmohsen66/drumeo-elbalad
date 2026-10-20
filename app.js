@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
       warmup: state.lang === 'ar' ? '🔥 تسخين (5)' : '🔥 Warm Up (5)',
       'groove-lesson': state.lang === 'ar' ? '🥁 تعليم الجروف (6)' : '🥁 Learn Grooves (6)',
       fills: state.lang === 'ar' ? '⚡ تعليم الفلات (7)' : '⚡ Learn Fills (7)',
-      songs: state.lang === 'ar' ? '🎸 عزف التراكات (22+)' : '🎸 Play Tracks (22+)'
+      songs: state.lang === 'ar' ? '🎸 عزف التراكات (38+)' : '🎸 Songs (38+)'
     };
     document.querySelectorAll('.mode-intent-btn').forEach((b) => {
       if (modeBtns[b.dataset.mode]) b.textContent = modeBtns[b.dataset.mode];

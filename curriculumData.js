@@ -974,6 +974,68 @@ const CURRICULUM_LESSONS = [
       }
     ]
   },
+  {
+    id: 'lp-crawling',
+    songsterrId: 9489,
+    category: 'linkin-park',
+    band: 'Linkin Park',
+    title: 'Crawling — Heavy Chorus Groove & Rob Bourdon Tom Build-Up',
+    titleAr: 'Linkin Park - Crawling (جروف الكورس التقيل + فيل التومات)',
+    startBpm: 80,
+    targetBpm: 105,
+    riffTone: 'metal',
+    kitFocus: 'CB, X, O, S, g, T1, T2, FT, B',
+    coachTipEn: 'One of the best beginner-to-intermediate 2000s anthems at 105 BPM! Play a steady groove in Bar 1, then descend S-T1-T2-FT on Beats 3 & 4 of Bar 2 right into the massive Chorus CB!',
+    coachTipAr: 'من أجمل وأسهل أغاني الألفينات على سرعة 105 BPM! جروف ثابت وقوي في المازورة الأولى وفيل تومات متدرج في المازورة التانية.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [49, null, 49, 52, 57, null, 56, null, 45, null, 45, 49, 54, null, 52, null],
+        tokens: ['CB', '-', 'X', 'B', 'XS', 'g', 'X', 'B', 'XB', '-', 'X', 'B', 'XS', '-', 'O', 'B']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [40, null, 40, 44, 52, null, 51, null, 47, 47, 45, 45, 44, 44, 42, 40],
+        tokens: ['XB', '-', 'X', 'B', 'XS', '-', 'X', 'B', 'S', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'B']
+      }
+    ]
+  },
+  {
+    id: 'lp-papercut',
+    songsterrId: 449713,
+    category: 'linkin-park',
+    band: 'Linkin Park',
+    title: 'Papercut — 75 BPM Hip-Hop Nu-Metal Bounce & Snare-Tom Fill',
+    titleAr: 'Linkin Park - Papercut (إيقاع الهيب هوب ميتال المريح 75 BPM + فيل)',
+    startBpm: 62,
+    targetBpm: 75,
+    riffTone: 'metal',
+    kitFocus: 'CB, X, O, S, g, T1, T2, FT, B',
+    coachTipEn: 'At a relaxed 75 BPM, Papercut lets you lock into Rob Bourdon’s signature hip-hop/metal bounce with crisp ghost notes (g) and a smooth 16th-note tom fill.',
+    coachTipAr: 'سرعتها هادية وممتعة جداً (75 BPM) بتعلمك إيقاع الهيب-هوب ميتال الشهير لفرقة Linkin Park مع فيل تومات نضيف.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [38, null, 41, 38, 45, null, 43, 41, 38, 38, 41, null, 45, null, 46, 45],
+        tokens: ['CB', 'g', 'X', 'B', 'XS', 'g', 'X', 'B', 'XB', 'B', 'X', 'g', 'XS', '-', 'O', 'B']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [38, null, 41, 38, 45, null, 43, 41, 45, 45, 43, 43, 41, 41, 40, 38],
+        tokens: ['XB', 'g', 'X', 'B', 'XS', 'g', 'X', 'B', 'S', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'B']
+      }
+    ]
+  },
 
   // --- CRAZY TOWN & 2000S NU-METAL ---
   {
@@ -1224,6 +1286,347 @@ const CURRICULUM_LESSONS = [
       }
     ]
   },
+  {
+    id: 'pod-youth-of-the-nation',
+    songsterrId: 50680,
+    category: 'nu-metal',
+    band: 'P.O.D.',
+    title: 'Youth of the Nation — 2001 Laid-Back Hip-Hop Rock Groove & Fill',
+    titleAr: 'P.O.D. - Youth of the Nation (جروف الألفينات الهادئ الشهير + الفيل)',
+    startBpm: 75,
+    targetBpm: 98,
+    riffTone: 'clean',
+    kitFocus: 'CB, X, O, S, g, T1, T2, FT, B',
+    coachTipEn: 'Just like Crazy Town’s Butterfly and Linkin Park’s In the End, this 98 BPM 2001 classic has a deep, relaxed pocket with a syncopated kick and clean tom fill!',
+    coachTipAr: 'نفس روح Butterfly و In the End بالظبط! إيقاع هادي وممتع جداً على سرعة 98 BPM بيثبت التوقيت وإحساس الجروف.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 4,
+        riffTone: 'clean',
+        riff: [40, null, 47, null, 52, null, 50, 47, 43, null, 50, null, 55, null, 54, 50],
+        tokens: ['CB', '-', 'X', 'B', 'XS', 'g', 'X', 'B', '-', 'B', 'XB', '-', 'XS', '-', 'O', 'B']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 10,
+        subdivision: 4,
+        riffTone: 'clean',
+        riff: [45, null, 52, null, 57, null, 55, 52, 47, null, 54, 52, 50, 47, 45, 43],
+        tokens: ['XB', '-', 'X', 'B', 'XS', 'g', 'X', 'B', 'XB', '-', 'S', 'S', 'T1', 'T2', 'FT', 'B']
+      }
+    ]
+  },
+  {
+    id: 'pod-alive',
+    songsterrId: 29677,
+    category: 'nu-metal',
+    band: 'P.O.D.',
+    title: 'Alive — 2001 Anthem Groove, Open Hi-Hat Bark & Chorus Tom Fill',
+    titleAr: 'P.O.D. - Alive (جروف الألفينات الحماسي + فيل الكورس)',
+    startBpm: 72,
+    targetBpm: 92,
+    riffTone: 'metal',
+    kitFocus: 'CB, X, O, S, T1, T2, FT, B',
+    coachTipEn: 'Heavy, uplifting 2001 Nu-Metal groove at 92 BPM! Focus on the double single-kick (XB-B) and the big tom fill into the "I Feel So Alive!" chorus.',
+    coachTipAr: 'أغنية حماسية جداً من سنة 2001 على سرعة مريحة (92 BPM) مع فيل تومات قوي قبل الكورس.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [45, null, 45, 52, 57, null, 56, 52, 40, 40, 47, null, 52, null, 50, 47],
+        tokens: ['CB', '-', 'X', 'B', 'XS', '-', 'O', 'B', 'XB', 'B', 'X', '-', 'XS', '-', 'X', 'B']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [42, null, 42, 49, 54, null, 52, 49, 50, 50, 49, 49, 47, 47, 45, 42],
+        tokens: ['XB', '-', 'X', 'B', 'XS', '-', 'S', 'B', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'FT', 'B']
+      }
+    ]
+  },
+  {
+    id: 'limpbizkit-rollin',
+    songsterrId: 72969,
+    category: 'nu-metal',
+    band: 'Limp Bizkit',
+    title: 'Rollin’ (Air Raid Vehicle) — 2000s Bounce Groove & John Otto Fill',
+    titleAr: 'Limp Bizkit - Rollin’ (إيقاع الألفينات الراقص الشهير + فيل)',
+    startBpm: 76,
+    targetBpm: 96,
+    riffTone: 'metal',
+    kitFocus: 'CB, X, O, S, g, T1, T2, FT, B',
+    coachTipEn: 'John Otto’s legendary 96 BPM bounce groove from 2000! Keep your right hand steady on the Hi-Hat while your Kick and Snare lock into the "Keep Rollin’ Rollin’ Rollin’" riff.',
+    coachTipAr: 'من أشهر أغاني سنة 2000 على الإطلاق! سرعة متوسطة (96 BPM) وإيقاع ممتع جداً بيقوي التوافق بين الرجل والإيدين.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [49, null, 49, 49, 52, null, 49, 49, 49, 49, 52, null, 55, null, 54, 49],
+        tokens: ['CB', '-', 'XB', '-', 'XS', 'g', 'X', 'B', 'XB', 'B', 'X', '-', 'XS', '-', 'O', 'B']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [49, null, 49, 49, 52, null, 49, 49, 55, 54, 52, 49, 47, 45, 44, 42],
+        tokens: ['XB', '-', 'XB', '-', 'XS', 'g', 'X', 'B', 'S', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'B']
+      }
+    ]
+  },
+  {
+    id: 'limpbizkit-take-a-look-around',
+    songsterrId: 11443,
+    category: 'nu-metal',
+    band: 'Limp Bizkit',
+    title: 'Take a Look Around — Mission: Impossible 2000 Groove & Build Fill',
+    titleAr: 'Limp Bizkit - Take a Look Around (الريف الشهير + فيل الكورس)',
+    startBpm: 80,
+    targetBpm: 102,
+    riffTone: 'clean',
+    kitFocus: 'CB, X, O, S, T1, T2, FT, B',
+    coachTipEn: 'Built on the famous theme at 102 BPM: play a clean, driving hi-hat groove in Bar 1 and build up across Snare and Floor Tom in Bar 2 before the heavy distortion drops!',
+    coachTipAr: 'مبنية على موسيقى Mission Impossible الشهيرة بسرعة 102 BPM مع فيل قوي جداً بيدخلك على الكورس التقيل.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 4,
+        riffTone: 'clean',
+        riff: [43, null, 43, null, 43, null, 46, null, 48, null, 43, null, 43, null, 41, 42],
+        tokens: ['CB', '-', 'X', 'B', 'XS', '-', 'X', 'B', 'XB', 'B', 'X', '-', 'XS', '-', 'O', 'B']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [43, null, 43, null, 43, null, 46, null, 48, 48, 46, 46, 43, 43, 41, 42],
+        tokens: ['XB', '-', 'X', 'B', 'XS', '-', 'X', 'B', 'S', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'FT']
+      }
+    ]
+  },
+  {
+    id: 'threedaysgrace-i-hate-everything',
+    songsterrId: 20179,
+    category: 'nu-metal',
+    band: 'Three Days Grace',
+    title: 'I Hate Everything About You — 2003 Alt-Metal Riff & Beginner-Friendly Fill',
+    titleAr: 'Three Days Grace - I Hate Everything About You (تراك روك/ميتال سهل وممتع)',
+    startBpm: 72,
+    targetBpm: 89,
+    riffTone: 'clean',
+    kitFocus: 'CB, X, O, S, T1, T2, FT, B',
+    coachTipEn: 'At 89 BPM, this 2003 smash hit is one of the easiest and most rewarding rock/metal tracks to play from start to finish!',
+    coachTipAr: 'من أسهل وأمتع أغاني الروك/ميتال في الألفينات على سرعة 89 BPM! ممتازة جداً للتدريب على المشي مع التراك كامل.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 4,
+        riffTone: 'clean',
+        riff: [42, null, 49, 54, 52, null, 49, null, 38, null, 45, 50, 49, null, 45, null],
+        tokens: ['CB', '-', 'X', 'B', 'XS', '-', 'X', 'B', 'XB', '-', 'X', 'B', 'XS', '-', 'O', 'B']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [40, null, 47, 52, 50, null, 47, null, 49, 49, 47, 47, 45, 45, 42, 40],
+        tokens: ['XB', '-', 'X', 'B', 'XS', '-', 'X', 'B', 'S', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'B']
+      }
+    ]
+  },
+  {
+    id: 'audioslave-like-a-stone',
+    songsterrId: 1859,
+    category: 'nu-metal',
+    band: 'Audioslave',
+    title: 'Like a Stone — 2002 Hypnotic Pocket Groove & Crash Fill',
+    titleAr: 'Audioslave - Like a Stone (جروف ثابت وممتع لضبط التوقيت)',
+    startBpm: 84,
+    targetBpm: 108,
+    riffTone: 'clean',
+    kitFocus: 'CB, X, O, S, T1, T2, FT, B',
+    coachTipEn: 'Brad Wilk’s super-clean 108 BPM groove is the ultimate timing builder: straight, solid Kick & Snare pocket with zero clutter and a crisp tom fill.',
+    coachTipAr: 'جروف واضح ونضيف جداً من سنة 2002 على سرعة 108 BPM، مثالي لتثبيت الإيد والرجل مع الموسيقى.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 2,
+        riffTone: 'clean',
+        riff: [52, 55, 59, 55, 50, 54, 57, 54],
+        tokens: ['CB', 'X', 'XS', 'X', 'XB', 'XB', 'XS', 'O']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'clean',
+        riff: [48, null, 52, null, 55, null, 52, null, 47, 47, 51, 51, 54, 54, 52, 47],
+        tokens: ['XB', '-', 'X', '-', 'XS', '-', 'XB', '-', 'S', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'B']
+      }
+    ]
+  },
+  {
+    id: 'alienantfarm-smooth-criminal',
+    songsterrId: 2436,
+    category: 'nu-metal',
+    band: 'Alien Ant Farm',
+    title: 'Smooth Criminal (2001 Nu-Metal Version) — Punchy Riff & Tom Fill',
+    titleAr: 'Alien Ant Farm - Smooth Criminal (نسخة الميتال الشهيرة 2001)',
+    startBpm: 92,
+    targetBpm: 126,
+    riffTone: 'metal',
+    kitFocus: 'CB, X, O, S, T1, T2, FT, B',
+    coachTipEn: 'Mike Cosgrove’s iconic 2001 Nu-Metal drum part locks directly onto the famous staccato guitar riff with tight hi-hat openings and a blazing 5-piece tom roll!',
+    coachTipAr: 'نسخة الروك/ميتال الشهيرة من سنة 2001! الدرامز ماشي مع الريف النقطة بالنقطة مع فيل تومات حماسي جداً.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [45, 45, 45, 43, 45, null, 47, null, 47, null, 45, 47, 48, null, 48, null],
+        tokens: ['CB', '-', 'X', 'B', 'XS', '-', 'O', 'B', 'XB', 'B', 'X', '-', 'XS', '-', 'X', 'B']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [47, null, 47, null, 43, null, 43, null, 45, 45, 43, 43, 41, 41, 40, 40],
+        tokens: ['XB', '-', 'X', 'B', 'XS', '-', 'X', 'B', 'S', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'B']
+      }
+    ]
+  },
+  {
+    id: 'godsmack-i-stand-alone',
+    songsterrId: 23382,
+    category: 'nu-metal',
+    band: 'Godsmack',
+    title: 'I Stand Alone — 2002 Scorpion King Heavy Groove & Tribal Tom Fill',
+    titleAr: 'Godsmack - I Stand Alone (جروف ميتال تقيل + فيل التومات)',
+    startBpm: 80,
+    targetBpm: 106,
+    riffTone: 'metal',
+    kitFocus: 'CB, X, O, S, T1, T2, FT, B',
+    coachTipEn: 'Heavy 2002 arena metal groove at 106 BPM! Slam the Floor Tom and Snare with authority before crashing into Beat 1.',
+    coachTipAr: 'من أقوى أغاني الميتال في سنة 2002 على سرعة متوسطة (106 BPM) مع فيل تومات وسنيير واضح جداً.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [38, null, 38, 38, 41, null, 40, 38, 38, 38, 43, null, 41, null, 40, 38],
+        tokens: ['CB', '-', 'X', 'B', 'XS', '-', 'X', 'B', 'XB', 'B', 'X', '-', 'XS', '-', 'O', 'B']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [38, null, 38, 38, 41, null, 40, 38, 44, 44, 43, 43, 41, 41, 38, 38],
+        tokens: ['XB', '-', 'X', 'B', 'XS', '-', 'S', 'B', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'S', 'B']
+      }
+    ]
+  },
+  {
+    id: 'drowningpool-bodies',
+    songsterrId: 86534,
+    category: 'nu-metal',
+    band: 'Drowning Pool',
+    title: 'Bodies — "Let the Bodies Hit the Floor" 2001 Nu-Metal Anthem',
+    titleAr: 'Drowning Pool - Bodies (أشهر نشيد ميتال في 2001 + الفيل)',
+    startBpm: 92,
+    targetBpm: 130,
+    riffTone: 'metal',
+    kitFocus: 'CB, X, O, S, T1, T2, FT, B',
+    coachTipEn: 'The ultimate 2001 Nu-Metal adrenaline rush! Count "1, 2, 3, 4" on the Hi-Hat and explode into the heavy Crash + Kick chorus groove!',
+    coachTipAr: 'أغنية الحماس الأولى في الألفينات! تقسيمة درامز مباشرة وواضحة جداً وممتعة في العزف مع التراك.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 2,
+        riffTone: 'metal',
+        riff: [38, 38, 41, 38, 44, 43, 41, 38],
+        tokens: ['CB', 'XB', 'XS', 'XB', 'XB', 'XB', 'XS', 'O']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [38, null, 38, null, 41, null, 38, null, 44, 44, 43, 43, 41, 41, 38, 38],
+        tokens: ['XB', '-', 'XB', '-', 'XS', '-', 'XB', '-', 'S', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'B']
+      }
+    ]
+  },
+  {
+    id: 'staind-its-been-awhile',
+    songsterrId: 567865,
+    category: 'nu-metal',
+    band: 'Staind',
+    title: 'It’s Been Awhile — 2001 Melodic Post-Grunge Groove & Expressive Tom Fill',
+    titleAr: 'Staind - It’s Been Awhile (تراك هادئ وميلوديك لتثبيت الفلات)',
+    startBpm: 80,
+    targetBpm: 116,
+    riffTone: 'clean',
+    kitFocus: 'CB, X, O, S, T1, T2, FT, B',
+    coachTipEn: 'Warm, spacious 2001 rock/alt-metal ballad groove where every Snare and Tom hit rings out clearly—great for practicing relaxed transitions!',
+    coachTipAr: 'أغنية هادية وجميلة جداً من سنة 2001 بتديك مساحة واسعة تركز فيها على نظافة الفيل والرجوع على CB.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 2,
+        riffTone: 'clean',
+        riff: [44, 51, 56, 51, 47, 54, 59, 54],
+        tokens: ['CB', 'X', 'XS', 'XB', 'XB', 'X', 'XS', 'O']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'clean',
+        riff: [42, null, 49, null, 54, null, 49, null, 49, 49, 47, 47, 44, 44, 42, 40],
+        tokens: ['XB', '-', 'X', '-', 'XS', '-', 'XB', '-', 'S', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'B']
+      }
+    ]
+  },
+  {
+    id: 'rammstein-sonne',
+    songsterrId: 51438,
+    category: 'nu-metal',
+    band: 'Rammstein',
+    title: 'Sonne (2001) — 75 BPM Heavy Industrial Metal Stomp & Tom Fill',
+    titleAr: 'Rammstein - Sonne (أثقل وأسهل جروف ميتال على سرعة 75 BPM)',
+    startBpm: 62,
+    targetBpm: 75,
+    riffTone: 'metal',
+    kitFocus: 'CB, X, S, T1, T2, FT, B',
+    coachTipEn: 'Want massive metal power at a slow, stress-free 75 BPM? Christoph Schneider’s Sonne beat is pure single-kick precision and thunderous tom fills!',
+    coachTipAr: 'لو عايز تعزف ميتال تقيل جداً على سرعة بطيئة ومريحة (75 BPM)، أغنية Sonne هي الاختيار المثالي!',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [40, 40, 40, 43, 45, null, 43, 40, 40, 40, 40, 43, 47, null, 45, 43],
+        tokens: ['CB', '-', 'XB', 'B', 'XS', '-', 'X', 'B', 'XB', 'B', 'X', 'B', 'XS', '-', 'X', 'B']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [40, 40, 40, 43, 45, null, 43, 40, 47, 47, 45, 45, 43, 43, 40, 40],
+        tokens: ['XB', '-', 'XB', 'B', 'XS', '-', 'X', 'B', 'S', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'B']
+      }
+    ]
+  },
 
   // --- SYSTEM OF A DOWN & DEFTONES ---
   {
@@ -1378,6 +1781,37 @@ const CURRICULUM_LESSONS = [
         riffTone: 'metal',
         riff: [49, null, null, 49, 56, null, 55, 54, 49, null, 49, 52, 50, 49, 45, 45],
         tokens: ['XB', 'g', 'X', 'B', 'XS', 'g', 'S', 'B', 'S', 'g', 'S', 'T1', 'T2', 'FT', 'CB', 'CB']
+      }
+    ]
+  },
+  {
+    id: 'deftones-change',
+    songsterrId: 23195,
+    category: 'soad-deftones',
+    band: 'Deftones',
+    title: 'Change (In the House of Flies) — 2000 White Pony Atmospheric Groove & Fill',
+    titleAr: 'Deftones - Change (In the House of Flies) (أشهر تراك في ألبوم White Pony)',
+    startBpm: 88,
+    targetBpm: 126,
+    riffTone: 'clean',
+    kitFocus: 'CB, R, X, O, S, g, T1, T2, FT, B',
+    coachTipEn: 'Abe Cunningham’s hypnotic half-time groove from 2000! Feel the deep snare backbeat on Beat 3 and let the Crash/Ride wash carry you into the chorus fill.',
+    coachTipAr: 'من أجمل أغاني سنة 2000 لفرقة Deftones! إيقاع Half-Time واسع وممتع جداً مع فيل تومات ناعم وقوي.',
+    bars: [
+      {
+        role: 'groove',
+        subdivision: 2,
+        riffTone: 'clean',
+        riff: [50, 57, 62, 57, 46, 53, 58, 53],
+        tokens: ['CB', 'X', 'XB', 'X', 'XS', 'X', 'XB', 'O']
+      },
+      {
+        role: 'fill',
+        fillStartStep: 8,
+        subdivision: 4,
+        riffTone: 'metal',
+        riff: [45, null, 52, null, 57, null, 52, null, 50, 50, 49, 49, 46, 46, 45, 43],
+        tokens: ['XB', '-', 'X', 'B', 'XS', 'g', 'X', 'B', 'S', 'S', 'T1', 'T1', 'T2', 'T2', 'FT', 'B']
       }
     ]
   },
