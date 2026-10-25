@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <!-- Main Studio & 3-Month Drum Learning System -->
+  <url>
+    <loc>https://drumeo-elbalad.vercel.app/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://drumeo-elbalad.vercel.app/?lang=en" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://drumeo-elbalad.vercel.app/?lang=ar" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://drumeo-elbalad.vercel.app/" />
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Practice Modes -->
+  <url>
+    <loc>https://drumeo-elbalad.vercel.app/?mode=songs</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://drumeo-elbalad.vercel.app/?mode=warmup</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://drumeo-elbalad.vercel.app/?mode=groove-lesson</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://drumeo-elbalad.vercel.app/?mode=fills</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- 12-Week (3-Month) Guided Drum Plan -->
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=1</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=2</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=3</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=4</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=5</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=6</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=7</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=8</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=9</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=10</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=11</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?week=12</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+
+  <!-- 5 Drum Warmups -->
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=warmup-single-stroke</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=warmup-16th-clock</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=warmup-single-kick-foot</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=warmup-paradiddle-kit</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=warmup-limb-independence</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+
+  <!-- 6 Groove Technique Lessons -->
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lesson-groove-8th-foundation</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lesson-groove-16th-kick</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lesson-groove-ghost-notes</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lesson-groove-open-hihat</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lesson-groove-tribal-toms</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lesson-groove-thrash-skank</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+
+  <!-- 7 Drum Fill Clinics -->
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=fill-1beat-pickup</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=fill-2beat-cascade</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=drill-chat-bridge</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=fill-herta-sweep</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=drill-linear-rlk</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=fill-quad-rlbb</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=fill-fullbar-assault</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+
+  <!-- 40 Interactive Song Drum Tabs (Linkin Park, 2000s Nu-Metal, SOAD, Deftones, Metallica, Slayer, Megadeth, Pantera, BLS) -->
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lp-in-the-end</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lp-numb</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lp-one-step-closer</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lp-faint</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lp-crawling</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=lp-papercut</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=crazytown-butterfly</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=korn-freak-on-a-leash</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=korn-coming-undone</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=limpbizkit-break-stuff</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=disturbed-sickness</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=paparoach-last-resort</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=evanescence-bring-me-to-life</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=slipknot-duality</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=pod-youth-of-the-nation</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=pod-alive</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=limpbizkit-rollin</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=limpbizkit-take-a-look-around</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=threedaysgrace-i-hate-everything</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=audioslave-like-a-stone</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=alienantfarm-smooth-criminal</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=godsmack-i-stand-alone</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=drowningpool-bodies</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=staind-its-been-awhile</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=rammstein-sonne</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=soad-chop-suey</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=soad-toxicity</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=soad-aerials</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=song-deftones-main-riff</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=song-deftones-verse-real</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=deftones-change</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=metallica-enter-sandman</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=metallica-sad-but-true</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=metallica-bell-tolls</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=megadeth-symphony</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=slayer-raining-blood</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=slayer-south-of-heaven</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=song-bls-main</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=song-bls-heavy-riff</loc><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://drumeo-elbalad.vercel.app/?track=pantera-walk</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+</urlset>

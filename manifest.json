@@ -1,0 +1,12 @@
+{
+  "name": "Drumeo Al-Balad (دراميو البلد) | 3-Month Metal & 2000s Drum Learning System",
+  "short_name": "Drumeo Al-Balad",
+  "description": "Learn rock, 2000s nu-metal, and thrash drums in 12 weeks on a 5-piece single-kick kit with synchronized letter notation, drumless backing tracks, and live mic/MIDI coaching.",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "background_color": "#0a0c12",
+  "theme_color": "#0a0c12",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "music"]
+}

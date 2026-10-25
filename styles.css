@@ -9,8 +9,8 @@
   --bg-card: #1f273a;
   --border-subtle: #28324b;
   --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
 
   --accent-red: #ef4444;
   --accent-gold: #f59e0b;
@@ -873,8 +873,7 @@ body {
 }
 
 .is-rest-step .step-desc-row {
-  color: #64748b;
-  opacity: 0.6;
+  color: var(--text-muted);
 }
 
 .step-sticking-row {
@@ -2223,4 +2222,599 @@ body {
   border: 1px solid #38bdf8;
   padding: 4px 10px;
   border-radius: 7px;
+}
+
+/* ============================================================================
+   KEYBOARD FOCUS INDICATORS & ANCHOR LESSON CARDS (WCAG AA + R-32)
+   ============================================================================ */
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+.kit-piece:focus-visible {
+  outline: 2px solid #38bdf8 !important;
+  outline-offset: 2px;
+}
+
+a.lesson-card-item {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+button.legend-item-card {
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.btn-topbar-guide {
+  background: rgba(6, 182, 212, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #67e8f9;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.14s, color 0.14s;
+}
+
+.btn-topbar-guide:hover {
+  background: rgba(6, 182, 212, 0.26);
+  color: #fff;
+}
+
+/* ============================================================================
+   SEO CURRICULUM GUIDE, 5-PIECE NOTATION TABLE, 12-WEEK ROADMAP & CATALOG
+   ============================================================================ */
+
+.seo-curriculum-guide {
+  max-width: 1680px;
+  margin: 18px auto 0;
+  padding: 0 16px 28px;
+}
+
+.seo-guide-inner {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.seo-hero-banner {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 20px;
+  background: var(--bg-panel-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.seo-hero-copy h2 {
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+
+.seo-hero-copy p {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+
+.seo-hero-copy code,
+.seo-daily-blocks-card code,
+.seo-section-block code {
+  background: #0d111a;
+  border: 1px solid #2d3a56;
+  color: #fde68a;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.84em;
+  font-weight: 700;
+}
+
+.seo-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn-seo-primary,
+.btn-seo-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: filter 0.14s, background 0.14s;
+}
+
+.btn-seo-primary {
+  background: var(--accent-gold);
+  color: #090b10;
+  border: 1px solid #fbbf24;
+}
+
+.btn-seo-primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn-seo-secondary {
+  background: var(--bg-card);
+  color: #f8fafc;
+  border: 1px solid #384766;
+}
+
+.btn-seo-secondary:hover {
+  background: #27324a;
+  border-color: #38bdf8;
+}
+
+.seo-daily-blocks-card {
+  background: #101520;
+  border: 1px solid #28354f;
+  border-radius: 9px;
+  padding: 16px 18px;
+}
+
+.seo-daily-blocks-card h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fbbf24;
+  margin-bottom: 10px;
+}
+
+.seo-phase-list {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.seo-phase-list strong {
+  color: #f8fafc;
+}
+
+.seo-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.seo-section-header h3 {
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  font-weight: 800;
+  color: #f8fafc;
+  margin-bottom: 4px;
+}
+
+.seo-section-header p {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+/* SYMBOL KEY TABLE */
+.seo-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+}
+
+.seo-symbol-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-panel-elevated);
+  font-size: 0.84rem;
+  min-width: 580px;
+}
+
+.seo-symbol-table th,
+.seo-symbol-table td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.seo-symbol-table th {
+  background: #10141f;
+  color: #fde68a;
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.seo-symbol-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sym-badge {
+  display: inline-block;
+  min-width: 38px;
+  text-align: center;
+  font-weight: 900 !important;
+  font-size: 0.85rem !important;
+  padding: 2px 8px !important;
+}
+
+.btn-table-sound {
+  background: var(--bg-card);
+  border: 1px solid #384766;
+  color: #67e8f9;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 5px 11px;
+  min-height: 34px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-table-sound:hover {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: #38bdf8;
+  color: #fff;
+}
+
+/* 3 METAL FILL FORMULA CARDS */
+.seo-formula-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.seo-formula-card {
+  background: var(--bg-panel-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.seo-formula-card h4 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fde68a;
+}
+
+.seo-formula-card p {
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.seo-tab-pre {
+  background: #0a0d14;
+  border: 1px solid #26324d;
+  border-radius: 7px;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.74rem;
+  color: #e2e8f0;
+  overflow-x: auto;
+  line-height: 1.45;
+}
+
+.btn-formula-load {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  background: rgba(6, 182, 212, 0.16);
+  border: 1px solid #38bdf8;
+  color: #67e8f9;
+  font-size: 0.8rem;
+  font-weight: 800;
+  border-radius: 7px;
+  padding: 7px 12px;
+  text-decoration: none;
+  text-align: center;
+}
+
+.btn-formula-load:hover {
+  background: rgba(6, 182, 212, 0.28);
+  color: #fff;
+}
+
+/* 12-WEEK ROADMAP & 58-TRACK DIRECTORY */
+.seo-months-grid,
+.seo-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.seo-month-column,
+.seo-catalog-group {
+  background: var(--bg-panel-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.seo-month-column h4,
+.seo-catalog-group h4 {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #fbbf24;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 6px;
+}
+
+.seo-link-list,
+.seo-track-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.seo-link-list a,
+.seo-track-links a {
+  display: block;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid transparent;
+  color: #e2e8f0;
+  font-size: 0.81rem;
+  text-decoration: none;
+  line-height: 1.35;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.seo-link-list a:hover,
+.seo-track-links a:hover {
+  background: rgba(6, 182, 212, 0.14);
+  border-color: #38bdf8;
+  color: #fff;
+}
+
+.seo-link-list strong {
+  color: #67e8f9;
+}
+
+/* DRUM LEARNER FAQ */
+.seo-faq-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.seo-faq-item {
+  background: var(--bg-panel-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  padding: 12px 15px;
+}
+
+.seo-faq-item summary {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #f8fafc;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.seo-faq-item p {
+  margin-top: 9px;
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* FOOTER */
+.seo-site-footer {
+  border-top: 1px solid var(--border-subtle);
+  background: #0d111a;
+  padding: 18px 16px;
+}
+
+.seo-footer-inner {
+  max-width: 1680px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.seo-footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.seo-footer-brand strong {
+  color: #f8fafc;
+  font-size: 0.88rem;
+}
+
+.seo-footer-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.seo-footer-nav a {
+  color: #67e8f9;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.seo-footer-nav a:hover {
+  background: rgba(6, 182, 212, 0.22);
+  color: #fff;
+}
+
+/* ============================================================================
+   RESPONSIVE MULTI-BREAKPOINT REFLOW (TABLET, SMALL LAPTOP & PHONE)
+   ============================================================================ */
+
+.hero-stacked-stage,
+.letter-stage-card,
+.visual-kit-hero-card,
+.letter-bars-stack,
+.letter-bar-block,
+.bottom-tabs-container,
+.tab-pane,
+.drum-tab-scroll {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.stage-bar-top,
+.letter-bar-header,
+.segmented-tab-bar {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.one-line-inline {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1180px) {
+  .seo-hero-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .seo-formula-grid,
+  .seo-months-grid,
+  .seo-catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .compact-topbar {
+    height: auto;
+    min-height: 58px;
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .topbar-search-wrapper {
+    order: 3;
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  .clean-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 10px 12px;
+  }
+
+  .track-sidebar {
+    position: static;
+    height: auto;
+    max-height: 320px;
+  }
+
+  .unified-transport-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rt-video-wrap {
+    width: 100%;
+    height: 140px;
+  }
+
+  .letter-cards-strip {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+
+  .tools-split-grid,
+  .seo-faq-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .seo-formula-grid,
+  .seo-months-grid,
+  .seo-catalog-grid,
+  .week-blocks-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .letter-cards-strip,
+  .letter-cards-strip.cols-8 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .svg-kit-hero-wrap {
+    height: 210px;
+    min-height: 210px;
+    max-height: 210px;
+    padding: 4px 6px;
+  }
+
+  .seo-guide-inner {
+    padding: 14px;
+    gap: 20px;
+  }
+
+  .seo-hero-banner {
+    padding: 14px;
+  }
+
+  .song-header-row,
+  .audio-mode-segmented {
+    flex-wrap: wrap;
+  }
+
+  .mode-intent-btn,
+  .cat-filter-btn,
+  .pill-toggle,
+  .rt-mode-btn,
+  .walk-mini-btn,
+  .btn-topbar-guide,
+  .btn-lang-switch,
+  .btn-search-fetch {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }

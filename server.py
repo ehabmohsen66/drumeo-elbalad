@@ -6,6 +6,7 @@
 # ============================================================================
 
 import gzip
+import html as html_lib
 import http.server
 import json
 import os
@@ -16,6 +17,49 @@ from pathlib import Path
 
 PORT = 3030
 BASE_DIR = Path(__file__).resolve().parent
+
+
+def _load_seo_catalog():
+    lessons = {}
+    weeks = {}
+    try:
+        raw = (BASE_DIR / "curriculumData.js").read_text("utf-8")
+        cur_block = raw.split("const CURRICULUM_LESSONS = [")[1].split("const THREE_MONTH_PLAN = [")[0]
+        for m in re.finditer(
+            r"id:\s*'([^']+)'[\s\S]*?category:\s*'([^']+)'[\s\S]*?band:\s*'([^']+)'[\s\S]*?title:\s*['\"]([^'\"]+)['\"][\s\S]*?startBpm:\s*(\d+),\s*targetBpm:\s*(\d+)",
+            cur_block,
+        ):
+            lid, cat, band, title, sbpm, tbpm = m.groups()
+            clean_band = re.sub(r"^[^\w\u0600-\u06FF]+", "", band).strip()
+            clean_title = re.sub(r"\s*[—–]\s*", ": ", title).strip()
+            lessons[lid] = {
+                "id": lid,
+                "category": cat,
+                "band": clean_band,
+                "rawBand": band,
+                "title": clean_title,
+                "startBpm": sbpm,
+                "targetBpm": tbpm,
+            }
+        plan_block = raw.split("const THREE_MONTH_PLAN = [")[1].split("const FILL_GENERATOR_OPTIONS")[0]
+        for m in re.finditer(
+            r"month:\s*(\d+)[\s\S]*?week:\s*(\d+),\s*title:\s*['\"]([^'\"]+)['\"][\s\S]*?goal:\s*['\"]([^'\"]+)['\"][\s\S]*?bpmRange:\s*['\"]([^'\"]+)['\"]",
+            plan_block,
+        ):
+            mo, wk, title, goal, bpm_range = m.groups()
+            weeks[wk] = {
+                "week": wk,
+                "month": mo,
+                "title": re.sub(r"\s*[—–]\s*", ": ", title).strip(),
+                "bpmRange": re.sub(r"\s*[—–]\s*", " to ", bpm_range).strip(),
+                "goal": re.sub(r"\s*[—–]\s*", ": ", goal).strip(),
+            }
+    except Exception:
+        pass
+    return lessons, weeks
+
+
+SEO_LESSONS, SEO_WEEKS = _load_seo_catalog()
 STATIC_CACHE_DIR = BASE_DIR / "song_cache"
 try:
     CACHE_DIR = BASE_DIR / ".song_cache"
@@ -526,7 +570,125 @@ class DrumeoRequestHandler(http.server.SimpleHTTPRequestHandler):
         if parsed.path == "/api/sample":
             return self.serve_instrument_sample(parsed)
 
+        if parsed.path in ("/", "/index.html"):
+            return self.serve_seo_index(parsed)
+
         return super().do_GET()
+
+    def serve_seo_index(self, parsed):
+        index_path = BASE_DIR / "index.html"
+        if not index_path.exists():
+            return super().do_GET()
+
+        html_text = index_path.read_text("utf-8")
+        qs = urllib.parse.parse_qs(parsed.query)
+        track_id = (qs.get("track", [""])[0]).strip()
+        week_num = (qs.get("week", [""])[0]).strip()
+        lang = (qs.get("lang", ["en"])[0]).strip()
+
+        host = self.headers.get("Host") or "drumeo-elbalad.vercel.app"
+        scheme = "https" if "vercel.app" in host else "http"
+        base_url = f"{scheme}://{host}"
+
+        page_title = None
+        page_desc = None
+        canonical_url = f"{base_url}/"
+        heading_band = None
+        heading_title = None
+
+        if week_num in SEO_WEEKS:
+            w = SEO_WEEKS[week_num]
+            page_title = f"{w['title']} ({w['bpmRange']}) | Drumeo Al-Balad 3-Month Drum Plan"
+            page_desc = (
+                f"{w['title']}: {w['goal']} Practice the 30-minute daily drum routine on a 5-piece single-kick kit "
+                f"with synchronized 16th-note letter notation."
+            )
+            canonical_url = f"{base_url}/?week={week_num}" + ("&lang=ar" if lang == "ar" else "")
+        elif track_id in SEO_LESSONS:
+            l = SEO_LESSONS[track_id]
+            page_title = f"{l['band']}: {l['title']} ({l['targetBpm']} BPM Drum Tab) | Drumeo Al-Balad"
+            page_desc = (
+                f"Play {l['band']} ({l['title']}) at {l['startBpm']} to {l['targetBpm']} BPM using 5-piece "
+                f"single-kick letter drum notation (X, S, B, T1, T2, FT) and drumless backing tracks."
+            )
+            canonical_url = f"{base_url}/?track={track_id}" + ("&lang=ar" if lang == "ar" else "")
+            heading_band = l["rawBand"]
+            heading_title = l["title"]
+
+        if page_title and page_desc:
+            esc_title = html_lib.escape(page_title, quote=True)
+            esc_desc = html_lib.escape(page_desc, quote=True)
+            esc_url = html_lib.escape(canonical_url, quote=True)
+
+            html_text = re.sub(
+                r'<title id="seo-doc-title">.*?</title>',
+                f'<title id="seo-doc-title">{esc_title}</title>',
+                html_text,
+                count=1,
+            )
+            html_text = re.sub(
+                r'<meta id="seo-meta-desc" name="description" content="[^"]*" />',
+                f'<meta id="seo-meta-desc" name="description" content="{esc_desc}" />',
+                html_text,
+                count=1,
+            )
+            html_text = re.sub(
+                r'<link id="seo-canonical" rel="canonical" href="[^"]*" />',
+                f'<link id="seo-canonical" rel="canonical" href="{esc_url}" />',
+                html_text,
+                count=1,
+            )
+            html_text = re.sub(
+                r'<meta id="seo-og-title" property="og:title" content="[^"]*" />',
+                f'<meta id="seo-og-title" property="og:title" content="{esc_title}" />',
+                html_text,
+                count=1,
+            )
+            html_text = re.sub(
+                r'<meta id="seo-og-desc" property="og:description" content="[^"]*" />',
+                f'<meta id="seo-og-desc" property="og:description" content="{esc_desc}" />',
+                html_text,
+                count=1,
+            )
+            html_text = re.sub(
+                r'<meta id="seo-og-url" property="og:url" content="[^"]*" />',
+                f'<meta id="seo-og-url" property="og:url" content="{esc_url}" />',
+                html_text,
+                count=1,
+            )
+            html_text = re.sub(
+                r'<meta id="seo-twitter-title" name="twitter:title" content="[^"]*" />',
+                f'<meta id="seo-twitter-title" name="twitter:title" content="{esc_title}" />',
+                html_text,
+                count=1,
+            )
+            html_text = re.sub(
+                r'<meta id="seo-twitter-desc" name="twitter:description" content="[^"]*" />',
+                f'<meta id="seo-twitter-desc" name="twitter:description" content="{esc_desc}" />',
+                html_text,
+                count=1,
+            )
+
+        if heading_band and heading_title:
+            html_text = re.sub(
+                r'<span id="active-lesson-band" class="band-tag">.*?</span>',
+                f'<span id="active-lesson-band" class="band-tag">{html_lib.escape(heading_band)}</span>',
+                html_text,
+                count=1,
+            )
+            html_text = re.sub(
+                r'<h1 id="active-lesson-title" class="song-main-title">.*?</h1>',
+                f'<h1 id="active-lesson-title" class="song-main-title">{html_lib.escape(heading_title)}</h1>',
+                html_text,
+                count=1,
+            )
+
+        body = html_text.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def _lookup_itunes_track(self, artist, title):
         q = f"{artist} {title}".strip()

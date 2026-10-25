@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/studio_audio
+Disallow: /api/sample
+
+Sitemap: https://drumeo-elbalad.vercel.app/sitemap.xml

@@ -46,10 +46,127 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // ==========================================================================
+  // SEO DEEP-LINKING & DYNAMIC DOCUMENT METADATA
+  // ==========================================================================
+
+  function sanitizeSeoText(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/\s*[—–]\s*/g, ': ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function updateDynamicSeoMeta(lesson, weekOverride = null) {
+    const baseUrl = window.location.origin || 'https://drumeo-elbalad.vercel.app';
+    const params = new URLSearchParams();
+
+    let pageTitle =
+      'Drumeo Al-Balad (دراميو البلد) | 3-Month Metal & 2000s Drum Learning System (5-Piece Kit & Letter Tabs)';
+    let pageDesc =
+      'Learn rock, 2000s nu-metal, and thrash drums in 12 weeks on a 5-piece single-kick kit. Practice 40 songs, 5 warmups, 6 groove lessons, and 7 fill clinics with real-time letter notation (X, S, B, T1, T2, FT), drumless backing tracks, and live mic/MIDI coaching.';
+
+    if (weekOverride) {
+      params.set('week', String(weekOverride.week));
+      if (state.lang === 'ar') params.set('lang', 'ar');
+      const wkTitle = sanitizeSeoText(state.lang === 'ar' && weekOverride.titleAr ? weekOverride.titleAr : weekOverride.title);
+      const wkGoal = sanitizeSeoText(state.lang === 'ar' && weekOverride.goalAr ? weekOverride.goalAr : weekOverride.goal);
+      pageTitle = `${wkTitle} (${sanitizeSeoText(weekOverride.bpmRange)}) | Drumeo Al-Balad 3-Month Drum Plan`;
+      pageDesc = `${wkTitle}: ${wkGoal} Practice the 30-minute daily drum routine on a 5-piece single-kick kit with synchronized 16th-note letter notation.`;
+    } else if (lesson) {
+      params.set('track', lesson.id);
+      if (state.activePartIndex > 0) params.set('part', String(state.activePartIndex));
+      if (state.lang === 'ar') params.set('lang', 'ar');
+
+      const cleanBand = sanitizeSeoText(lesson.band.replace(/^[^\w\u0600-\u06FF]+/, ''));
+      const rawTitle = state.lang === 'ar' && lesson.titleAr ? lesson.titleAr : lesson.title;
+      const cleanTitle = sanitizeSeoText(rawTitle);
+      const tip = sanitizeSeoText(
+        state.lang === 'ar' && lesson.coachTipAr ? lesson.coachTipAr : lesson.coachTipEn || ''
+      );
+
+      pageTitle = `${cleanBand}: ${cleanTitle} (${lesson.targetBpm} BPM Drum Tab) | Drumeo Al-Balad`;
+      pageDesc = `Play ${cleanBand} (${cleanTitle}) at ${lesson.startBpm} to ${lesson.targetBpm} BPM using 5-piece single-kick letter drum notation (X, S, B, T1, T2, FT) and drumless backing tracks. ${tip}`.slice(
+        0,
+        300
+      );
+    }
+
+    document.title = pageTitle;
+    document.documentElement.lang = state.lang === 'ar' ? 'ar' : 'en';
+
+    const setMeta = (id, attr, val) => {
+      const el = document.getElementById(id);
+      if (el) el.setAttribute(attr, val);
+    };
+
+    const queryStr = params.toString();
+    const canonicalUrl = queryStr ? `${baseUrl}/?${queryStr}` : `${baseUrl}/`;
+
+    setMeta('seo-meta-desc', 'content', pageDesc);
+    setMeta('seo-og-title', 'content', pageTitle);
+    setMeta('seo-og-desc', 'content', pageDesc);
+    setMeta('seo-og-url', 'content', canonicalUrl);
+    setMeta('seo-twitter-title', 'content', pageTitle);
+    setMeta('seo-twitter-desc', 'content', pageDesc);
+    setMeta('seo-canonical', 'href', canonicalUrl);
+
+    if (window.history && window.history.replaceState) {
+      const relUrl = queryStr ? `?${queryStr}` : window.location.pathname;
+      window.history.replaceState({ track: state.currentLessonId, week: state.activeWeekNumber, lang: state.lang }, '', relUrl);
+    }
+  }
+
+  function applyUrlQueryParameters() {
+    const params = new URLSearchParams(window.location.search);
+    const langParam = params.get('lang');
+    if (langParam === 'ar' || langParam === 'en') {
+      state.lang = langParam;
+      localStorage.setItem('drumeo_lang', state.lang);
+    }
+
+    const catParam = params.get('cat');
+    if (catParam && (catParam === 'all-songs' || SONG_CATEGORIES.includes(catParam))) {
+      state.categoryFilter = catParam;
+      document.querySelectorAll('.cat-filter-btn').forEach((b) =>
+        b.classList.toggle('active', b.dataset.cat === state.categoryFilter)
+      );
+    }
+
+    const modeParam = params.get('mode');
+    if (modeParam && ['songs', 'warmup', 'groove-lesson', 'fills'].includes(modeParam)) {
+      state.practiceMode = modeParam;
+    }
+
+    const weekParam = parseInt(params.get('week') || '', 10);
+    if (!Number.isNaN(weekParam) && weekParam >= 1 && weekParam <= 12) {
+      state.activeWeekNumber = weekParam;
+      localStorage.setItem('drumeo_active_week', String(weekParam));
+      state.planDrawerOpen = true;
+      const card = document.getElementById('week-routine-card');
+      if (card) card.classList.remove('hidden');
+      const weekObj = getActiveWeekObj();
+      if (weekObj && weekObj.blocks && weekObj.blocks[0]) {
+        state.currentLessonId = weekObj.blocks[0].lessonId;
+      }
+    }
+
+    const trackParam = params.get('track');
+    const partParam = Math.max(0, parseInt(params.get('part') || '0', 10) || 0);
+    if (trackParam && window.CURRICULUM_LESSONS.some((l) => l.id === trackParam)) {
+      state.currentLessonId = trackParam;
+      state.activePartIndex = partParam;
+    }
+
+    return { weekParam: !Number.isNaN(weekParam) ? weekParam : null, partParam };
+  }
+
+  // ==========================================================================
   // INITIALIZATION
   // ==========================================================================
 
   function initApp() {
+    const urlInit = applyUrlQueryParameters();
     syncWorkoutBlocksWithActiveWeek();
     setupThreeMonthPlanUI();
     setupPracticeModeSwitcher();
@@ -60,12 +177,23 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFillGeneratorControls();
     bindTransportAndControls();
     bindKeyboardDrumKit();
+    bindSeoCurriculumGuide();
     setupLiveDrumCoach();
     updateLangButtonUI();
     renderDrumLegend();
 
-    loadLessonById(state.currentLessonId, 0, false);
+    loadLessonById(state.currentLessonId, urlInit.partParam || 0, true);
+    if (urlInit.weekParam) {
+      const weekObj = getActiveWeekObj();
+      if (weekObj) updateDynamicSeoMeta(null, weekObj);
+    }
     updateMasteredBadge();
+
+    window.addEventListener('popstate', () => {
+      const nextInit = applyUrlQueryParameters();
+      updateLangButtonUI();
+      loadLessonById(state.currentLessonId, nextInit.partParam || 0, true);
+    });
   }
 
   // ==========================================================================
@@ -75,6 +203,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateLangButtonUI() {
     const btn = document.getElementById('btn-lang-toggle');
     btn.textContent = state.lang === 'en' ? '🇪🇬 عربي' : '🇬🇧 EN';
+
+    const guideBtn = document.getElementById('btn-topbar-guide');
+    if (guideBtn) {
+      guideBtn.textContent = state.lang === 'ar' ? '📖 الدليل و٥٨ تراك' : 'Guide & 58 Tabs';
+    }
 
     const modeHeading = document.getElementById('sidebar-mode-heading');
     if (modeHeading) {
@@ -86,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
       warmup: state.lang === 'ar' ? '🔥 تسخين (5)' : '🔥 Warm Up (5)',
       'groove-lesson': state.lang === 'ar' ? '🥁 تعليم الجروف (6)' : '🥁 Learn Grooves (6)',
       fills: state.lang === 'ar' ? '⚡ تعليم الفلات (7)' : '⚡ Learn Fills (7)',
-      songs: state.lang === 'ar' ? '🎸 عزف التراكات (38+)' : '🎸 Songs (38+)'
+      songs: state.lang === 'ar' ? '🎸 عزف التراكات (40)' : '🎸 Songs (40)'
     };
     document.querySelectorAll('.mode-intent-btn').forEach((b) => {
       if (modeBtns[b.dataset.mode]) b.textContent = modeBtns[b.dataset.mode];
@@ -97,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
       openPlanBtn.textContent =
         state.lang === 'ar'
           ? '🗓️ خطة الـ ٣ شهور الكاملة (١٢ أسبوع)'
-          : '🗓️ View 3-Month Plan (Weeks 1–12)';
+          : '🗓️ View 3-Month Plan (Weeks 1 to 12)';
     }
 
     const startWeekBtn = document.getElementById('btn-start-week-workout');
@@ -124,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updateLessonHeaderUI(lesson);
       renderSongPartsBar(lesson);
       renderLetterNotationView();
+      updateDynamicSeoMeta(lesson);
     }
   }
 
@@ -195,7 +329,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     selectEl.onchange = () => {
-      selectWeek(parseInt(selectEl.value, 10), true);
+      const wk = parseInt(selectEl.value, 10);
+      selectWeek(wk, true);
+      togglePlanDrawer(true);
+      const weekObj = getActiveWeekObj();
+      if (weekObj) updateDynamicSeoMeta(null, weekObj);
     };
 
     const drawerBtn = document.getElementById('btn-toggle-3month-drawer');
@@ -505,6 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDrumTabGrid();
     renderLessonSidebar();
     renderActiveWeekBlocksStrip();
+    updateDynamicSeoMeta(lesson);
 
     if (state.activeSteps[0]) {
       highlightStepVisuals(0, state.activeSteps[0]);
@@ -2539,7 +2678,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtered = getFilteredSidebarLessons();
 
     filtered.forEach((lesson) => {
-      const item = document.createElement('div');
+      const item = document.createElement('a');
+      const query = state.lang === 'ar' ? `?track=${lesson.id}&lang=ar` : `?track=${lesson.id}`;
+      item.href = query;
       item.className = `lesson-card-item ${lesson.id === state.currentLessonId ? 'selected-lesson' : ''}`;
       const isMastered = !!state.masteredLessons[lesson.id];
 
@@ -2551,8 +2692,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="lc-title">${state.lang === 'ar' && lesson.titleAr ? lesson.titleAr : lesson.title}</div>
       `;
 
-      item.addEventListener('click', () => {
-        loadLessonById(lesson.id, 0, false);
+      item.addEventListener('click', (e) => {
+        if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
+          e.preventDefault();
+          loadLessonById(lesson.id, 0, false);
+        }
       });
       listEl.appendChild(item);
     });
@@ -2680,7 +2824,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!grid) return;
     grid.innerHTML = '';
     window.DRUM_KEY_LEGEND.forEach((item) => {
-      const card = document.createElement('div');
+      const card = document.createElement('button');
+      card.type = 'button';
       card.className = 'legend-item-card';
       card.style.borderLeftColor = item.color;
       card.innerHTML = `
@@ -2699,10 +2844,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function bindKeyboardDrumKit() {
     document.querySelectorAll('.kit-piece').forEach((piece) => {
-      piece.addEventListener('click', () => {
+      const strikePiece = () => {
         const d = piece.dataset.drum;
         engine.triggerDrum(d);
         registerUserDrumStrike(d, 'pad');
+      };
+      piece.addEventListener('click', strikePiece);
+      piece.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          strikePiece();
+        }
       });
     });
     const keyMap = {
@@ -2710,12 +2862,66 @@ document.addEventListener('DOMContentLoaded', () => {
       KeyB: 'B', Digit1: 'T1', Digit2: 'T2', KeyF: 'FT', KeyC: 'C', KeyR: 'R'
     };
     window.addEventListener('keydown', (e) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A', 'SUMMARY'].includes(e.target.tagName)) return;
+      if (e.target.closest && e.target.closest('.kit-piece')) return;
       if (keyMap[e.code]) {
         const d = keyMap[e.code];
         engine.triggerDrum(d);
         registerUserDrumStrike(d, 'key');
       }
+    });
+  }
+
+  function bindSeoCurriculumGuide() {
+    document.querySelectorAll('[data-load-lesson]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
+          e.preventDefault();
+          const lessonId = link.getAttribute('data-load-lesson');
+          if (lessonId) {
+            loadLessonById(lessonId, 0, true);
+            document.querySelector('.control-deck')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-select-week]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
+          e.preventDefault();
+          const wk = parseInt(link.getAttribute('data-select-week') || '1', 10);
+          selectWeek(wk, true);
+          togglePlanDrawer(true);
+          const weekObj = getActiveWeekObj();
+          if (weekObj) updateDynamicSeoMeta(null, weekObj);
+          document.getElementById('week-routine-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-switch-mode]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
+          e.preventDefault();
+          const mode = link.getAttribute('data-switch-mode');
+          if (mode) {
+            setPracticeMode(mode, true);
+            document.querySelector('.clean-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-trigger-drum]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const token = btn.getAttribute('data-trigger-drum') || 'S';
+        const drums = window.parseTokenToDrums(token);
+        drums.forEach((d) => {
+          engine.triggerDrum(d);
+          registerUserDrumStrike(d, 'pad');
+        });
+      });
     });
   }
 
