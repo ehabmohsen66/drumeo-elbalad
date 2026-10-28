@@ -54,7 +54,7 @@ function parseTokenToDrums(rawToken) {
 }
 
 function formatDrumsToToken(drums) {
-  if (!drums || drums.length === 0) return '—';
+  if (!drums || drums.length === 0) return '-';
   const mapped = [...new Set(drums.map((d) => (d === 'R' ? 'X' : d)))];
   const order = ['C', 'X', 'O', 'S', 'g', 'T1', 'T2', 'FT', 'B'];
   const sorted = mapped.sort((a, b) => order.indexOf(a) - order.indexOf(b));
@@ -195,7 +195,7 @@ function compileBarsToSteps(bars, defaultRiffTone = 'metal') {
           isFillStep: isFill,
           isLandingStep: false,
           drums: [],
-          token: '—',
+          token: '-',
           sticking: '·'
         });
       }
@@ -2440,6 +2440,566 @@ function generateFormulaFill(rhythmId, stickingId, orchId) {
   ]);
 }
 
+// Normalize any bar object into a 16-slot token array so 8th and 16th bars can be compared uniformly.
+function normalizeBarTo16Tokens(bar) {
+  const raw = (bar && Array.isArray(bar.tokens)) ? bar.tokens : [];
+  if (raw.length === 16) {
+    return raw.map((t) => (t && t !== '—' ? t : '-'));
+  }
+  if (raw.length === 8) {
+    const out = [];
+    for (let i = 0; i < 8; i++) {
+      const tok = raw[i];
+      out.push(tok && tok !== '—' ? tok : '-');
+      out.push('-');
+    }
+    return out;
+  }
+  const out = new Array(16).fill('-');
+  for (let i = 0; i < Math.min(16, raw.length); i++) {
+    out[i] = raw[i] && raw[i] !== '—' ? raw[i] : '-';
+  }
+  return out;
+}
+
+// Identify whether a specific 16th-note step is a common tripwire for a 3-month drummer.
+function isStepTrickyForThreeMonth(step, stepIndex, allSteps) {
+  if (!step || !step.drums || step.drums.length === 0) {
+    return { tricky: false, code: '', reasonEn: '', reasonAr: '' };
+  }
+
+  const drums = step.drums;
+  const sInBar = typeof step.stepInBar === 'number' ? step.stepInBar : stepIndex % 16;
+  const isOdd16th = sInBar % 2 === 1;
+  const prevStep = stepIndex > 0 && allSteps ? allSteps[stepIndex - 1] : null;
+  const sameBarAsPrev = prevStep && prevStep.barIndex === step.barIndex;
+  const prevHasKick = !!(sameBarAsPrev && prevStep.drums && prevStep.drums.includes('B'));
+
+  if (drums.includes('B') && prevHasKick && allSteps && allSteps.length >= 16) {
+    return {
+      tricky: true,
+      code: '2xB',
+      reasonEn: 'Consecutive 16th double-kick on single pedal (B-B)',
+      reasonAr: 'ضربتين كيك سريعة ورا بعض ببدال واحد (B-B)'
+    };
+  }
+
+  if (isOdd16th && drums.includes('B') && !step.isFillStep) {
+    return {
+      tricky: true,
+      code: 'e/a B',
+      reasonEn: `Offbeat 16th Kick on "${step.count}" (falls between Hi-Hat hits)`,
+      reasonAr: `ضربة كيك فرعية على (${step.count}) بين ضربات الهاي هات`
+    };
+  }
+
+  if (isOdd16th && drums.includes('S') && !step.isFillStep) {
+    return {
+      tricky: true,
+      code: 'e/a S',
+      reasonEn: `Offbeat 16th Snare on "${step.count}"`,
+      reasonAr: `ضربة سنيير فرعية سريعة على (${step.count})`
+    };
+  }
+
+  if (drums.includes('g')) {
+    return {
+      tricky: true,
+      code: 'Ghost',
+      reasonEn: 'Soft left-hand ghost note (g) between main hits',
+      reasonAr: 'جوست نوت خفيفة بالشمال (g) بين الضربات الأساسية'
+    };
+  }
+
+  if (step.isFillStep && drums.includes('B') && sInBar > 0) {
+    return {
+      tricky: true,
+      code: 'Fill B',
+      reasonEn: 'Hand-foot linear kick inside fill',
+      reasonAr: 'ضربة كيك داخل الفيل السريع (توافق إيد ورجل)'
+    };
+  }
+
+  if (drums.length >= 3) {
+    return {
+      tricky: true,
+      code: '3-Limb',
+      reasonEn: '3 limbs striking at the same time',
+      reasonAr: '٣ أطراف في نفس اللحظة'
+    };
+  }
+
+  return { tricky: false, code: '', reasonEn: '', reasonAr: '' };
+}
+
+// Analyze a set of bars and tempo to judge playability for a 3-month drummer.
+function evaluateThreeMonthDifficulty(bars, targetBpm = 100, lang = 'en') {
+  const counts16 = ['1', 'e', '&', 'a', '2', 'e', '&', 'a', '3', 'e', '&', 'a', '4', 'e', '&', 'a'];
+  const safeBars = Array.isArray(bars) ? bars : [];
+  const bpm = Number(targetBpm) || 100;
+
+  let activeBarCount = 0;
+  let offbeat16thKickCount = 0;
+  let double16thKickCount = 0;
+  let ghostNoteCount = 0;
+  let offbeatSnareCount = 0;
+  let threeLimbCount = 0;
+  let fillOdd16thCount = 0;
+  let fillKickCount = 0;
+  let patternShiftCount = 0;
+
+  const offbeatKickSpots = [];
+  const doubleKickSpots = [];
+  const offbeatSnareSpots = [];
+  let prevGrooveSignature = null;
+
+  safeBars.forEach((bar, bIdx) => {
+    const tokens16 = normalizeBarTo16Tokens(bar);
+    const parsedSteps = tokens16.map((t) => parseTokenToDrums(t));
+    const nonEmpty = parsedSteps.some((d) => d.length > 0);
+    if (!nonEmpty) return;
+
+    activeBarCount++;
+    const barNum = bar.barNumber || bIdx + 1;
+    const isFillBar =
+      bar.role === 'fill' ||
+      parsedSteps.slice(8).filter((d) => d.includes('T1') || d.includes('T2') || d.includes('FT')).length >= 2;
+    const fillStart =
+      bar.fillStartStep !== undefined ? bar.fillStartStep : isFillBar ? 8 : 16;
+
+    const grooveSigParts = [];
+
+    for (let s = 0; s < 16; s++) {
+      const drums = parsedSteps[s];
+      const isFillStep = isFillBar && s >= fillStart;
+      const isOdd16th = s % 2 === 1;
+      const countLbl = counts16[s];
+
+      if (s < 8 && !isFillStep) {
+        const hasB = drums.includes('B') ? 'B' : '';
+        const hasS = drums.includes('S') ? 'S' : '';
+        grooveSigParts.push(`${hasB}${hasS}`);
+      }
+
+      if (drums.length === 0) continue;
+
+      if (drums.length >= 3) {
+        threeLimbCount++;
+      }
+
+      if (drums.includes('g')) {
+        ghostNoteCount++;
+      }
+
+      if (s > 0 && drums.includes('B') && parsedSteps[s - 1].includes('B')) {
+        double16thKickCount++;
+        if (doubleKickSpots.length < 3) {
+          doubleKickSpots.push(`Bar ${barNum} [${counts16[s - 1]} -> ${countLbl}]`);
+        }
+      }
+
+      if (isOdd16th && drums.includes('B') && !isFillStep) {
+        offbeat16thKickCount++;
+        if (offbeatKickSpots.length < 4) {
+          offbeatKickSpots.push(`Bar ${barNum} [${countLbl}]`);
+        }
+      }
+
+      if (isOdd16th && drums.includes('S') && !isFillStep) {
+        offbeatSnareCount++;
+        if (offbeatSnareSpots.length < 3) {
+          offbeatSnareSpots.push(`Bar ${barNum} [${countLbl}]`);
+        }
+      }
+
+      if (isFillStep) {
+        if (isOdd16th) fillOdd16thCount++;
+        if (drums.includes('B') && s > 0) fillKickCount++;
+      }
+    }
+
+    if (grooveSigParts.length === 8) {
+      const sig = grooveSigParts.join('|');
+      if (prevGrooveSignature !== null && prevGrooveSignature !== sig) {
+        patternShiftCount++;
+      }
+      prevGrooveSignature = sig;
+    }
+  });
+
+  if (activeBarCount === 0) {
+    return {
+      level: 'easy',
+      score: 0,
+      badgeEn: '3-Month Check: Rest / Intro Bars (No Drums Yet)',
+      badgeAr: 'فحص ٣ شهور: مازورات راحة / مقدمة بدون درامز',
+      shortEn: '3M: Easy',
+      shortAr: '٣ شهور: سهل',
+      reasonEn: 'No drum hits in these bars. Wait for the drums to enter or jump to Drums Start.',
+      reasonAr: 'لا توجد ضربات درامز في هذه المازورات. اضغط (بداية الدرامز) للانتقال لأول إيقاع.',
+      adviceEn: 'Click "Drums Start" to jump to the first active drum bar.',
+      adviceAr: 'اضغط على زرار بداية الدرامز للانتقال لأول مازورة فيها إيقاع.',
+      factors: []
+    };
+  }
+
+  const scale = 2 / Math.max(1, activeBarCount);
+  const offbeatKicksPer2 = offbeat16thKickCount * scale;
+  const doubleKicksPer2 = double16thKickCount * scale;
+  const ghostsPer2 = ghostNoteCount * scale;
+  const offbeatSnaresPer2 = offbeatSnareCount * scale;
+  const fillOdd16thsPer2 = fillOdd16thCount * scale;
+  const fillKicksPer2 = fillKickCount * scale;
+
+  let tempoPoints = 6;
+  if (bpm > 126) tempoPoints = 32;
+  else if (bpm > 116) tempoPoints = 24;
+  else if (bpm > 106) tempoPoints = 16;
+  else if (bpm > 94) tempoPoints = 10;
+
+  const rawScore =
+    tempoPoints +
+    Math.min(30, offbeatKicksPer2 * 11) +
+    Math.min(24, doubleKicksPer2 * 14) +
+    Math.min(20, ghostsPer2 * 3.2) +
+    Math.min(16, offbeatSnaresPer2 * 9) +
+    Math.min(20, fillOdd16thsPer2 * 3.2 + fillKicksPer2 * 5) +
+    (patternShiftCount > 0 ? 8 : 0) +
+    Math.min(8, threeLimbCount * scale * 4);
+
+  const score = Math.min(98, Math.max(10, Math.round(rawScore)));
+
+  let level = 'easy';
+  if (score >= 58) level = 'hard';
+  else if (score >= 33) level = 'stretch';
+
+  const factors = [];
+
+  // 1. Tempo Factor
+  if (bpm <= 105) {
+    factors.push({
+      status: 'ok',
+      en: `Tempo: ${bpm} BPM (3M Friendly)`,
+      ar: `السرعة: ${bpm} BPM (مناسبة)`
+    });
+  } else if (bpm <= 118) {
+    factors.push({
+      status: 'warn',
+      en: `Tempo: ${bpm} BPM (Moderate-Fast)`,
+      ar: `السرعة: ${bpm} BPM (متوسطة السرعة)`
+    });
+  } else {
+    factors.push({
+      status: 'hard',
+      en: `Tempo: ${bpm} BPM (Fast for 3M)`,
+      ar: `السرعة: ${bpm} BPM (سريعة على ٣ شهور)`
+    });
+  }
+
+  // 2. Offbeat 16th Kicks Factor
+  if (offbeat16thKickCount === 0) {
+    factors.push({
+      status: 'ok',
+      en: 'Kick Timing: On-Beat 8ths (Easy)',
+      ar: 'توقيت الكيك: على العدات الأساسية (سهل)'
+    });
+  } else {
+    factors.push({
+      status: offbeat16thKickCount >= 2 ? 'hard' : 'warn',
+      en: `Offbeat e/a Kicks: ${offbeat16thKickCount} (${offbeatKickSpots.slice(0, 2).join(', ')})`,
+      ar: `كيك فرعي (e/a): ${offbeat16thKickCount} (${offbeatKickSpots.slice(0, 2).join('، ')})`
+    });
+  }
+
+  // 3. Double Kicks Factor
+  if (double16thKickCount > 0) {
+    factors.push({
+      status: 'hard',
+      en: `16th Double-Kick (B-B): ${double16thKickCount}x`,
+      ar: `دبل كيك سريع (B-B): ${double16thKickCount}`
+    });
+  }
+
+  // 4. Ghost Notes Factor
+  if (ghostNoteCount > 0) {
+    factors.push({
+      status: ghostNoteCount >= 4 ? 'hard' : 'warn',
+      en: `Ghost Notes (g): ${ghostNoteCount} hits`,
+      ar: `جوست نوتس (g): ${ghostNoteCount} ضربة`
+    });
+  }
+
+  // 5. Fill & Pattern Shift Factors
+  if (fillOdd16thCount >= 2 || fillKickCount >= 1) {
+    factors.push({
+      status: fillKickCount >= 2 || fillOdd16thCount >= 4 ? 'hard' : 'warn',
+      en: fillKickCount > 0 ? 'Fill: Hand-Foot 16th Blaster' : 'Fill: Fast 16th Roll',
+      ar: fillKickCount > 0 ? 'الفيل: إيد ورجل 16th سريع' : 'الفيل: 16th سريع على التومات'
+    });
+  }
+
+  if (patternShiftCount > 0) {
+    factors.push({
+      status: 'warn',
+      en: 'Groove: Changes Between Bars',
+      ar: 'الإيقاع: يتغير من مازورة لأخرى'
+    });
+  }
+
+  const reasonsEn = [];
+  const reasonsAr = [];
+
+  if (offbeat16thKickCount > 0) {
+    reasonsEn.push(
+      `kick hits land on "e/a" between your Hi-Hat strokes (${offbeatKickSpots.slice(0, 3).join(', ')})`
+    );
+    reasonsAr.push(
+      `وجود ضربات كيك سريعة على (e/a) بين ضربات الهاي هات في (${offbeatKickSpots.slice(0, 3).join('، ')})`
+    );
+  }
+  if (double16thKickCount > 0) {
+    reasonsEn.push(
+      `back-to-back 16th single-pedal double kicks (${doubleKickSpots.slice(0, 2).join(', ')})`
+    );
+    reasonsAr.push(
+      `وجود ضربتين كيك ورا بعض بسرعة 16th في (${doubleKickSpots.slice(0, 2).join('، ')})`
+    );
+  }
+  if (ghostNoteCount > 0) {
+    reasonsEn.push(`${ghostNoteCount} soft left-hand ghost notes (g) crowded between backbeats`);
+    reasonsAr.push(`${ghostNoteCount} ضربات جوست نوت خفيفة (g) مزدحمة بين السنيير والكيك`);
+  }
+  if (offbeatSnareCount > 0) {
+    reasonsEn.push(`syncopated 16th snare hits on ${offbeatSnareSpots.slice(0, 2).join(', ')}`);
+    reasonsAr.push(`ضربات سنيير فرعية خاطفة في ${offbeatSnareSpots.slice(0, 2).join('، ')}`);
+  }
+  if (fillOdd16thCount >= 2 || fillKickCount > 0) {
+    reasonsEn.push('fast 16th-note fill transitions before Beat 1 (CB)');
+    reasonsAr.push('فيل 16th سريع قبل الرجوع على (CB) في أول المازورة');
+  }
+  if (patternShiftCount > 0) {
+    reasonsEn.push('the kick/snare pattern shifts from bar to bar instead of repeating one steady pocket');
+    reasonsAr.push('تغير مكان الكيك والسنيير من مازورة للتانية بدل الثبات على جروف واحد');
+  }
+  if (bpm > 115) {
+    reasonsEn.push(`fast tempo (${bpm} BPM)`);
+    reasonsAr.push(`سرعة التراك العالية (${bpm} BPM)`);
+  }
+
+  let badgeEn = '3-MONTH CHECK: PLAYABLE NOW';
+  let badgeAr = 'تقييم ٣ شهور: مناسب لمستواك الآن';
+  let shortEn = '3M: Easy';
+  let shortAr = '٣ شهور: سهل';
+  let reasonEn = '';
+  let reasonAr = '';
+  let adviceEn = '';
+  let adviceAr = '';
+
+  if (level === 'easy') {
+    reasonEn =
+      reasonsEn.length > 0
+        ? `Manageable for a 3-month drummer (Score ${score}/100): steady 8th-note foundation with minor variation (${reasonsEn.join('; ')}).`
+        : `Great fit for a 3-month drummer (Score ${score}/100): kicks align cleanly with your Hi-Hat hand and Snare stays anchored on Beats 2 and 4.`;
+    reasonAr =
+      reasonsAr.length > 0
+        ? `مناسب لعازف ٣ شهور (درجة الصعوبة ${score}/100): إيقاع واضح مع تفاصيل بسيطة (${reasonsAr.join(' + ')}).`
+        : `ممتاز لمستوى ٣ شهور (درجة الصعوبة ${score}/100): الكيك ماشي مع إيدك اليمين على الهاي هات والسنيير ثابت في العدات 2 و 4.`;
+    adviceEn = 'You can follow the Exact Song Beats here, or use Steady Lock Beat to focus 100% on timing.';
+    adviceAr = 'تقدر تعزف النوتة الأصلية هنا بسهولة، أو تختار (إيقاع ثابت) للتركيز على التوقيت.';
+  } else if (level === 'stretch') {
+    badgeEn = '3-MONTH CHECK: STRETCH (NEEDS SIMPLIFY OR 0.75x)';
+    badgeAr = 'تقييم ٣ شهور: متوسط الصعوبة (يحتاج تبسيط أو تبطيء)';
+    shortEn = '3M: Stretch';
+    shortAr = '٣ شهور: متوسط';
+    reasonEn = `Why exact beats feel tricky here (Score ${score}/100): ${reasonsEn.join(', ')}.`;
+    reasonAr = `ليه النوتة الأصلية بالمللي صعبة شوية هنا (${score}/100): ${reasonsAr.join('، و')}.`;
+    adviceEn = 'Switch to "3-Month Simplified" or "Steady Lock Beat" on the right so kicks land with your Hi-Hat hand.';
+    adviceAr = 'اضغط على (مبسط لـ ٣ شهور) أو (إيقاع ثابت طول التراك) عشان تلعب مع الأغنية من غير لخبطة.';
+  } else {
+    badgeEn = '3-MONTH CHECK: HARD TO FOLLOW EXACT BEATS';
+    badgeAr = 'تقييم ٣ شهور: صعب بالمللي (إيقاع مزدحم لمستوى ٣ شهور)';
+    shortEn = '3M: Hard';
+    shortAr = '٣ شهور: صعب';
+    reasonEn = `Why you lose the beat following the exact tab (Score ${score}/100): ${reasonsEn.join(', ')}.`;
+    reasonAr = `سبب صعوبة متابعة نفس الضربات بالمللي (${score}/100): ${reasonsAr.join('، و')}.`;
+    adviceEn = 'Do not fight every 16th note yet: click "3-Month Simplified" or "Steady Lock Beat" to play a clean 5-piece groove that locks with this song.';
+    adviceAr = 'متحاولش تلعب كل تفصيلة 16th دلوقتي: اضغط (مبسط لـ ٣ شهور) أو (إيقاع ثابت) عشان تعزف التراك بإيقاع واضح ومظبوط.';
+  }
+
+  return {
+    level,
+    score,
+    badgeEn,
+    badgeAr,
+    shortEn,
+    shortAr,
+    reasonEn,
+    reasonAr,
+    adviceEn,
+    adviceAr,
+    factors
+  };
+}
+
+// Convert any bar array into a 3-Month Simplified Beat ('3month') or Unchanging Steady Pocket ('steady').
+function adaptBarsForThreeMonthDrummer(bars, mode = 'exact') {
+  if (!Array.isArray(bars) || mode === 'exact') return bars;
+
+  return bars.map((bar, bIdx) => {
+    const tokens16 = normalizeBarTo16Tokens(bar);
+    const parsedSteps = tokens16.map((t) => parseTokenToDrums(t));
+    const hasAnyHit = parsedSteps.some((d) => d.length > 0);
+
+    // Keep silent intro/outro rest bars silent so song sync stays true.
+    if (!hasAnyHit) {
+      return { ...bar, subdivision: 4, tokens: tokens16 };
+    }
+
+    const hadBeat1Crash = parsedSteps[0].includes('C');
+    const isFillBar =
+      bar.role === 'fill' ||
+      parsedSteps.slice(8).filter((d) => d.includes('T1') || d.includes('T2') || d.includes('FT')).length >= 2;
+
+    // Mode 'steady': one rock-solid, unchanging 8th-note groove across the whole track, plus a clean 4-hit fill on fill bars.
+    if (mode === 'steady') {
+      const beat1Token = hadBeat1Crash || bIdx === 0 ? 'CB' : 'XB';
+      if (isFillBar) {
+        return {
+          ...bar,
+          role: 'fill',
+          fillStartStep: 8,
+          subdivision: 4,
+          stickings: ['R+K', '·', 'R', '·', 'R+L', '·', 'R', '·', 'R', '·', 'L', '·', 'R', '·', 'L', '·'],
+          tokens: [beat1Token, '-', 'X', '-', 'XS', '-', 'X', '-', 'S', '-', 'T1', '-', 'T2', '-', 'FT', '-']
+        };
+      }
+      return {
+        ...bar,
+        role: 'groove',
+        fillStartStep: undefined,
+        subdivision: 4,
+        stickings: ['R+K', '·', 'R', '·', 'R+L', '·', 'R', '·', 'R+K', '·', 'R+K', '·', 'R+L', '·', 'R', '·'],
+        tokens: [beat1Token, '-', 'X', '-', 'XS', '-', 'X', '-', 'XB', '-', 'XB', '-', 'XS', '-', 'X', '-']
+      };
+    }
+
+    // Mode '3month': preserves each bar's section feel (crashes, floor-tom groove, half-time vs backbeat, fills)
+    // while removing ghost notes, shifting offbeat e/a kicks onto 8th-note Hi-Hat anchors, and smoothing fills.
+    const usesFloorTomPulse =
+      parsedSteps.filter((d, idx) => idx % 2 === 0 && d.includes('FT')).length >= 3;
+    const handPulse = usesFloorTomPulse ? 'FT' : 'X';
+
+    const newTokens = new Array(16).fill('-');
+    const grooveEnd = isFillBar ? 8 : 16;
+
+    // Check if the original bar had kick activity in the second half (around Beat 3 / 3&).
+    const hadKickAroundBeat3 = parsedSteps.slice(7, 12).some((d) => d.includes('B'));
+    const hadUpbeatKick3And = parsedSteps[10].includes('B') || parsedSteps[11].includes('B') || parsedSteps[9].includes('B');
+    const hadUpbeatKick1And = parsedSteps[2].includes('B');
+
+    for (let s = 0; s < grooveEnd; s += 2) {
+      const origDrums = parsedSteps[s];
+      const outDrums = [];
+
+      if (s === 0 && hadBeat1Crash) {
+        outDrums.push('C');
+      } else {
+        outDrums.push(handPulse);
+      }
+
+      // Snare backbeat on Beat 2 (step 4) and Beat 4 (step 12), or preserve explicit even-step snare.
+      if (s === 4 || s === 12 || origDrums.includes('S')) {
+        if (!outDrums.includes('S')) outDrums.push('S');
+      }
+
+      // Anchor Kicks on Beat 1 (step 0), Beat 3 (step 8), and clean 8th upbeats (1& or 3&) without e/a offbeats or 2xB.
+      const isSnareBeat = outDrums.includes('S');
+      if (s === 0) {
+        outDrums.push('B');
+      } else if (s === 2 && hadUpbeatKick1And && !isSnareBeat) {
+        outDrums.push('B');
+      } else if (s === 8 && (hadKickAroundBeat3 || origDrums.includes('B')) && !isSnareBeat) {
+        outDrums.push('B');
+      } else if (s === 10 && hadUpbeatKick3And && !isSnareBeat) {
+        outDrums.push('B');
+      }
+
+      newTokens[s] = formatDrumsToToken(outDrums);
+    }
+
+    if (isFillBar) {
+      // Turn Beats 3 & 4 (steps 8..15) into a clean, countable 8th-note 5-piece cascade (3 & 4 & -> S T1 T2 FT).
+      const hasTomsInOrig = parsedSteps
+        .slice(8)
+        .some((d) => d.includes('T1') || d.includes('T2') || d.includes('FT'));
+      if (hasTomsInOrig) {
+        newTokens[8] = 'S';
+        newTokens[9] = '-';
+        newTokens[10] = 'T1';
+        newTokens[11] = '-';
+        newTokens[12] = 'T2';
+        newTokens[13] = '-';
+        newTokens[14] = 'FT';
+        newTokens[15] = '-';
+      } else {
+        newTokens[8] = 'S';
+        newTokens[9] = '-';
+        newTokens[10] = 'S';
+        newTokens[11] = '-';
+        newTokens[12] = 'S';
+        newTokens[13] = '-';
+        newTokens[14] = 'S';
+        newTokens[15] = '-';
+      }
+    }
+
+    return {
+      ...bar,
+      role: isFillBar ? 'fill' : 'groove',
+      fillStartStep: isFillBar ? 8 : undefined,
+      subdivision: 4,
+      stickings: undefined,
+      tokens: newTokens
+    };
+  });
+}
+
+// Sanitize em dashes in static curriculum strings so rendered UI text stays clean.
+function stripEmDashesFromCurriculum() {
+  const cleanStr = (val) =>
+    typeof val === 'string' ? val.replace(/\s*—\s*/g, ': ').replace(/—/g, '-') : val;
+
+  CURRICULUM_LESSONS.forEach((l) => {
+    l.title = cleanStr(l.title);
+    l.titleAr = cleanStr(l.titleAr);
+    l.coachTipEn = cleanStr(l.coachTipEn);
+    l.coachTipAr = cleanStr(l.coachTipAr);
+  });
+
+  DAILY_30_MIN_BLOCKS.forEach((b) => {
+    b.title = cleanStr(b.title);
+    b.titleAr = cleanStr(b.titleAr);
+  });
+
+  THREE_MONTH_PLAN.forEach((w) => {
+    w.title = cleanStr(w.title);
+    w.titleAr = cleanStr(w.titleAr);
+    w.goal = cleanStr(w.goal);
+    w.goalAr = cleanStr(w.goalAr);
+    w.monthTitle = cleanStr(w.monthTitle);
+    w.monthTitleAr = cleanStr(w.monthTitleAr);
+  });
+
+  Object.values(FILL_GENERATOR_OPTIONS).forEach((arr) => {
+    arr.forEach((item) => {
+      item.name = cleanStr(item.name);
+      item.nameAr = cleanStr(item.nameAr);
+    });
+  });
+}
+
+stripEmDashesFromCurriculum();
+
 window.DRUM_KEY_LEGEND = DRUM_KEY_LEGEND;
 window.CURRICULUM_LESSONS = CURRICULUM_LESSONS;
 window.DAILY_30_MIN_BLOCKS = DAILY_30_MIN_BLOCKS;
@@ -2450,3 +3010,6 @@ window.parseUserLetterString = parseUserLetterString;
 window.parseTokenToDrums = parseTokenToDrums;
 window.formatDrumsToToken = formatDrumsToToken;
 window.generateFormulaFill = generateFormulaFill;
+window.evaluateThreeMonthDifficulty = evaluateThreeMonthDifficulty;
+window.isStepTrickyForThreeMonth = isStepTrickyForThreeMonth;
+window.adaptBarsForThreeMonthDrummer = adaptBarsForThreeMonthDrummer;

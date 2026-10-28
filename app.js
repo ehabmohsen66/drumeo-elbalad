@@ -18,7 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const state = {
     lang: localStorage.getItem('drumeo_lang') || 'en', // 'en' | 'ar'
     practiceMode: 'songs', // 'warmup' | 'groove-lesson' | 'fills' | 'songs'
-    categoryFilter: 'all-songs', // 'all-songs' | 'linkin-park' | 'nu-metal' | 'soad-deftones' | 'thrash' | 'bls-pantera'
+    categoryFilter: 'all-songs', // 'all-songs' | '3month-easy' | 'linkin-park' | 'nu-metal' | 'soad-deftones' | 'thrash' | 'bls-pantera'
+    beatComplexityMode: localStorage.getItem('drumeo_beat_mode') || 'exact', // 'exact' | '3month' | 'steady'
+    rawPairBars: [],
     currentLessonId: 'lp-in-the-end',
     activePartIndex: 0,
     loopMode: 'full',
@@ -54,6 +56,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(str)
       .replace(/\s*[—–]\s*/g, ': ')
       .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function getShortSongTitle(titleStr) {
+    if (!titleStr) return '';
+    return String(titleStr)
+      .split(/\s*(?:—|–|:)\s*/)[0]
       .trim();
   }
 
@@ -126,11 +135,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const catParam = params.get('cat');
-    if (catParam && (catParam === 'all-songs' || SONG_CATEGORIES.includes(catParam))) {
+    if (
+      catParam &&
+      (catParam === 'all-songs' || catParam === '3month-easy' || SONG_CATEGORIES.includes(catParam))
+    ) {
       state.categoryFilter = catParam;
       document.querySelectorAll('.cat-filter-btn').forEach((b) =>
         b.classList.toggle('active', b.dataset.cat === state.categoryFilter)
       );
+    }
+
+    const beatModeParam = params.get('beatMode');
+    if (beatModeParam && ['exact', '3month', 'steady'].includes(beatModeParam)) {
+      state.beatComplexityMode = beatModeParam;
+      localStorage.setItem('drumeo_beat_mode', beatModeParam);
     }
 
     const modeParam = params.get('mode');
@@ -179,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindKeyboardDrumKit();
     bindSeoCurriculumGuide();
     setupLiveDrumCoach();
+    setupThreeMonthJudgeControls();
     updateLangButtonUI();
     renderDrumLegend();
 
@@ -225,6 +244,28 @@ document.addEventListener('DOMContentLoaded', () => {
       if (modeBtns[b.dataset.mode]) b.textContent = modeBtns[b.dataset.mode];
     });
 
+    const easyFilterBtn = document.getElementById('btn-filter-3month-easy');
+    if (easyFilterBtn) {
+      easyFilterBtn.textContent = state.lang === 'ar' ? 'مناسب لـ ٣ شهور' : '3-Month Ready';
+    }
+
+    const tmjModeLabel = document.getElementById('tmj-mode-label');
+    if (tmjModeLabel) {
+      tmjModeLabel.textContent = state.lang === 'ar' ? 'مستوى الإيقاع:' : 'Beat Mode:';
+    }
+    const btnExact = document.getElementById('btn-beat-mode-exact');
+    if (btnExact) {
+      btnExact.textContent = state.lang === 'ar' ? '١. التابه الأصلية' : '1. Exact Song Tab';
+    }
+    const btn3Month = document.getElementById('btn-beat-mode-3month');
+    if (btn3Month) {
+      btn3Month.textContent = state.lang === 'ar' ? '٢. مبسطة لـ ٣ شهور' : '2. 3-Month Simplified';
+    }
+    const btnSteady = document.getElementById('btn-beat-mode-steady');
+    if (btnSteady) {
+      btnSteady.textContent = state.lang === 'ar' ? '٣. إيقاع واحد ثابت' : '3. Steady Lock Beat';
+    }
+
     const openPlanBtn = document.getElementById('btn-sidebar-open-plan');
     if (openPlanBtn) {
       openPlanBtn.textContent =
@@ -240,6 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updateDrawerToggleBtnText();
+    updateThreeMonthJudgeUI();
   }
 
   function toggleLanguage() {
@@ -440,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const lessonName = lesson
         ? state.lang === 'ar' && lesson.titleAr
           ? lesson.titleAr
-          : lesson.title.split('—')[0].trim()
+          : getShortSongTitle(lesson.title)
         : blk.lessonId;
 
       pill.innerHTML = `
@@ -485,7 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const nameStr = lesson
             ? state.lang === 'ar' && lesson.titleAr
               ? lesson.titleAr
-              : lesson.title.split('—')[0].trim()
+              : getShortSongTitle(lesson.title)
             : blk.lessonId;
           return `
             <button class="pwc-block-btn" data-week="${w.week}" data-bidx="${bIdx}">
@@ -584,6 +626,17 @@ document.addEventListener('DOMContentLoaded', () => {
       return window.CURRICULUM_LESSONS.filter((l) => l.category === 'fills');
     }
     // 'songs' mode
+    if (state.categoryFilter === '3month-easy' && window.evaluateThreeMonthDifficulty) {
+      return window.CURRICULUM_LESSONS.filter((l) => {
+        if (!SONG_CATEGORIES.includes(l.category)) return false;
+        const diff = window.evaluateThreeMonthDifficulty(l.bars, l.targetBpm, state.lang);
+        return diff.score <= 48;
+      }).sort((a, b) => {
+        const sa = window.evaluateThreeMonthDifficulty(a.bars, a.targetBpm, state.lang).score;
+        const sb = window.evaluateThreeMonthDifficulty(b.bars, b.targetBpm, state.lang).score;
+        return sa - sb;
+      });
+    }
     return window.CURRICULUM_LESSONS.filter((l) => {
       if (!SONG_CATEGORIES.includes(l.category)) return false;
       if (state.categoryFilter === 'all-songs') return true;
@@ -627,7 +680,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeBars =
       lesson.parts && lesson.parts[partIndex] ? lesson.parts[partIndex].bars : lesson.bars;
 
-    const compiled = window.compileBarsToSteps(activeBars, lesson.riffTone || 'metal');
+    state.rawPairBars = activeBars;
+    const adaptedBars = window.adaptBarsForThreeMonthDrummer
+      ? window.adaptBarsForThreeMonthDrummer(activeBars, state.beatComplexityMode)
+      : activeBars;
+
+    const compiled = window.compileBarsToSteps(adaptedBars, lesson.riffTone || 'metal');
     state.fullSteps = compiled.steps;
     state.subdivision = compiled.subdivision;
     state.loopMode = 'full';
@@ -638,6 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     applyLoopModeSlice();
     updateLessonHeaderUI(lesson);
+    updateThreeMonthJudgeUI();
     renderSongPartsBar(lesson);
     renderLetterNotationView();
     renderDrumTabGrid();
@@ -885,11 +944,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const bar1 = rtState.allBars[Math.min(total - 1, clampedStart + 1)] || bar0;
     const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
 
-    const compiled = window.compileBarsToSteps([bar0, bar1], lesson?.riffTone || 'metal');
+    state.rawPairBars = [bar0, bar1];
+    const adaptedPair = window.adaptBarsForThreeMonthDrummer
+      ? window.adaptBarsForThreeMonthDrummer(state.rawPairBars, state.beatComplexityMode)
+      : state.rawPairBars;
+
+    const compiled = window.compileBarsToSteps(adaptedPair, lesson?.riffTone || 'metal');
     state.fullSteps = compiled.steps;
     state.subdivision = compiled.subdivision;
 
     applyLoopModeSlice();
+    updateThreeMonthJudgeUI();
     renderLetterNotationView();
     renderDrumTabGrid();
     updateWalkProgressUI(clampedStart, null);
@@ -1278,7 +1343,7 @@ document.addEventListener('DOMContentLoaded', () => {
       rtState.ytPlaying = false;
       rtState.ytActive = false;
       if (statusEl) {
-        statusEl.textContent = '🎛️ Practice BPM Mode — Use BPM Slider';
+        statusEl.textContent = '🎛️ Practice BPM Mode: Use BPM Slider';
       }
       if (autoPlay) {
         if (!engine.isPlaying) engine.start();
@@ -1439,7 +1504,7 @@ document.addEventListener('DOMContentLoaded', () => {
       syncAudioModeUI(false);
       if (statusEl) {
         statusEl.textContent =
-          state.lang === 'ar' ? '🥁 تمرين درامز — اضغط ▶ PLAY' : '🥁 Drum Drill — Press ▶ PLAY';
+          state.lang === 'ar' ? '🥁 تمرين درامز: اضغط ▶ PLAY' : '🥁 Drum Drill: Press ▶ PLAY';
       }
       if (shouldAutoPlay) {
         engine.start();
@@ -1452,14 +1517,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     syncAudioModeUI(true);
 
-    const cleanTitle = lesson.title.split('—')[0].replace(/\(.*?\)/g, '').trim();
+    const cleanTitle = getShortSongTitle(lesson.title).replace(/\(.*?\)/g, '').trim();
     const artist = lesson.band;
 
     if (statusEl) {
       statusEl.textContent =
         state.lang === 'ar'
           ? `⏳ جاري تحميل ومزامنة ${cleanTitle}...`
-          : `⏳ Syncing ${artist} – ${cleanTitle}...`;
+          : `⏳ Syncing ${artist} - ${cleanTitle}...`;
     }
 
     const songPromise =
@@ -1529,11 +1594,12 @@ document.addEventListener('DOMContentLoaded', () => {
       setWalkPairWindow(rtState.firstDrumBarIndex, false);
       renderSongPartsBar(lesson);
       updateLessonHeaderUI(lesson);
+      updateThreeMonthJudgeUI();
     }
 
     if (rtState.mode === 'synth') {
       if (statusEl) {
-        statusEl.textContent = '🎛️ Practice BPM Ready — Press ▶ PLAY';
+        statusEl.textContent = '🎛️ Practice BPM Ready: Press ▶ PLAY';
       }
       if (shouldAutoPlay) {
         engine.start();
@@ -1549,8 +1615,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (statusEl) {
           statusEl.textContent =
             state.lang === 'ar'
-              ? `✅ جاهز (يبدأ من دخول الدرامز مازورة ${rtState.firstDrumBarIndex + 1}) — اضغط ▶ PLAY`
-              : `✅ Ready at Bar ${rtState.firstDrumBarIndex + 1} (Drums Start) — Press ▶ PLAY`;
+              ? `✅ جاهز (يبدأ من دخول الدرامز مازورة ${rtState.firstDrumBarIndex + 1}): اضغط ▶ PLAY`
+              : `✅ Ready at Bar ${rtState.firstDrumBarIndex + 1} (Drums Start): Press ▶ PLAY`;
         }
         loadYouTubeVideoById(
           item.videoId,
@@ -1687,10 +1753,15 @@ document.addEventListener('DOMContentLoaded', () => {
       drillBtn.addEventListener('click', () => {
         rtState.walkMode = false;
         setLockTwoBars(true);
-        const compiled = window.compileBarsToSteps(lesson.bars, lesson.riffTone || 'metal');
+        state.rawPairBars = lesson.bars;
+        const adaptedDrillBars = window.adaptBarsForThreeMonthDrummer
+          ? window.adaptBarsForThreeMonthDrummer(lesson.bars, state.beatComplexityMode)
+          : lesson.bars;
+        const compiled = window.compileBarsToSteps(adaptedDrillBars, lesson.riffTone || 'metal');
         state.fullSteps = compiled.steps;
         state.subdivision = compiled.subdivision;
         applyLoopModeSlice();
+        updateThreeMonthJudgeUI();
         renderLetterNotationView();
         renderDrumTabGrid();
         if (state.activeSteps[0]) highlightStepVisuals(0, state.activeSteps[0]);
@@ -1761,6 +1832,196 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
+  // 3-MONTH DRUMMER DIFFICULTY JUDGE & BEAT SIMPLIFIER
+  // ==========================================================================
+
+  function setupThreeMonthJudgeControls() {
+    document.querySelectorAll('.tmj-mode-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.beatMode || 'exact';
+        setBeatComplexityMode(mode);
+      });
+    });
+
+    const autoFixBtn = document.getElementById('btn-tmj-autofix');
+    if (autoFixBtn) {
+      autoFixBtn.addEventListener('click', () => {
+        const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
+        if (state.beatComplexityMode === 'exact') {
+          setBeatComplexityMode('3month');
+          if (lesson && lesson.targetBpm >= 108) {
+            const speedSel = document.getElementById('rt-speed');
+            if (speedSel && parseFloat(speedSel.value || '1') > 0.75) {
+              speedSel.value = '0.75';
+              if (rtState.ytPlayer && typeof rtState.ytPlayer.setPlaybackRate === 'function') {
+                try {
+                  rtState.ytPlayer.setPlaybackRate(0.75);
+                } catch (_) {}
+              }
+            }
+            const slowBpm = lesson.startBpm || Math.max(65, Math.round(lesson.targetBpm * 0.75));
+            engine.setBpm(slowBpm);
+          }
+        } else if (state.beatComplexityMode === '3month') {
+          setBeatComplexityMode('steady');
+        } else {
+          setBeatComplexityMode('exact');
+          const speedSel = document.getElementById('rt-speed');
+          if (speedSel && speedSel.value === '0.75') {
+            speedSel.value = '1';
+            if (rtState.ytPlayer && typeof rtState.ytPlayer.setPlaybackRate === 'function') {
+              try {
+                rtState.ytPlayer.setPlaybackRate(1);
+              } catch (_) {}
+            }
+          }
+        }
+      });
+    }
+  }
+
+  function setBeatComplexityMode(mode) {
+    if (!['exact', '3month', 'steady'].includes(mode)) return;
+    state.beatComplexityMode = mode;
+    localStorage.setItem('drumeo_beat_mode', mode);
+
+    const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
+    const rawBars =
+      state.rawPairBars && state.rawPairBars.length > 0
+        ? state.rawPairBars
+        : lesson
+        ? lesson.bars
+        : [];
+
+    if (rawBars.length > 0) {
+      const adapted = window.adaptBarsForThreeMonthDrummer
+        ? window.adaptBarsForThreeMonthDrummer(rawBars, state.beatComplexityMode)
+        : rawBars;
+      const compiled = window.compileBarsToSteps(adapted, lesson?.riffTone || 'metal');
+      state.fullSteps = compiled.steps;
+      state.subdivision = compiled.subdivision;
+      applyLoopModeSlice();
+      renderLetterNotationView();
+      renderDrumTabGrid();
+      if (state.activeSteps[0] && !isTransportPlaying()) {
+        highlightStepVisuals(0, state.activeSteps[0]);
+      }
+    }
+
+    updateThreeMonthJudgeUI();
+  }
+
+  function updateThreeMonthJudgeUI() {
+    const panel = document.getElementById('three-month-judge-panel');
+    if (!panel || !window.evaluateThreeMonthDifficulty) return;
+
+    const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
+    if (!lesson) return;
+
+    const pairBars =
+      state.rawPairBars && state.rawPairBars.length > 0 ? state.rawPairBars : lesson.bars;
+    const songBars =
+      lesson.allBars && lesson.allBars.length > 0 ? lesson.allBars : lesson.bars;
+    const bpm = lesson.targetBpm || 100;
+
+    const pairEval = window.evaluateThreeMonthDifficulty(pairBars, bpm, state.lang);
+    const songEval = window.evaluateThreeMonthDifficulty(songBars, bpm, state.lang);
+
+    const displayedBars = window.adaptBarsForThreeMonthDrummer
+      ? window.adaptBarsForThreeMonthDrummer(pairBars, state.beatComplexityMode)
+      : pairBars;
+    const displayedEval = window.evaluateThreeMonthDifficulty(displayedBars, bpm, state.lang);
+
+    panel.classList.remove('level-easy', 'level-stretch', 'level-hard', 'mode-exact', 'mode-3month', 'mode-steady');
+    panel.classList.add(`level-${pairEval.level}`, `mode-${state.beatComplexityMode}`);
+
+    document.querySelectorAll('.tmj-mode-btn').forEach((btn) => {
+      const isSelected = btn.dataset.beatMode === state.beatComplexityMode;
+      btn.classList.toggle('active', isSelected);
+      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    });
+
+    const verdictBadge = document.getElementById('tmj-verdict-badge');
+    if (verdictBadge) {
+      verdictBadge.className = `tmj-verdict-badge level-${
+        state.beatComplexityMode === 'exact' ? pairEval.level : displayedEval.level
+      }`;
+      const rawVerdictText = state.lang === 'ar' ? pairEval.badgeAr : pairEval.badgeEn;
+      if (state.beatComplexityMode === 'exact') {
+        verdictBadge.textContent = `${rawVerdictText} (${pairEval.score}/100)`;
+      } else if (state.beatComplexityMode === '3month') {
+        verdictBadge.textContent =
+          state.lang === 'ar'
+            ? `الوضع المبسط لـ ٣ شهور شغال (${displayedEval.score}/100) · الأصلية: ${pairEval.shortAr} (${pairEval.score}/100)`
+            : `3-Month Simplified Active (${displayedEval.score}/100) · Exact Tab: ${pairEval.shortEn} (${pairEval.score}/100)`;
+      } else {
+        verdictBadge.textContent =
+          state.lang === 'ar'
+            ? `الإيقاع الثابت شغال (${displayedEval.score}/100) · الأصلية: ${pairEval.shortAr} (${pairEval.score}/100)`
+            : `Steady Lock Beat Active (${displayedEval.score}/100) · Exact Tab: ${pairEval.shortEn} (${pairEval.score}/100)`;
+      }
+    }
+
+    const overallPill = document.getElementById('tmj-song-overall-pill');
+    if (overallPill) {
+      const b0 = pairBars[0]?.barNumber || (rtState.currentPairStartBar || 0) + 1;
+      const b1 = pairBars[1]?.barNumber || b0 + 1;
+      const barSpanStr = pairBars.length > 1 ? `${b0}-${b1}` : `${b0}`;
+      overallPill.textContent =
+        state.lang === 'ar'
+          ? `التراك كامل: ${songEval.shortAr} (${songEval.score}/100) · مازورة ${barSpanStr}`
+          : `Full Track: ${songEval.shortEn} (${songEval.score}/100) · Bars ${barSpanStr}`;
+    }
+
+    const factorsRow = document.getElementById('tmj-factors-row');
+    if (factorsRow) {
+      factorsRow.innerHTML = (pairEval.factors || [])
+        .map((f) => {
+          const text = state.lang === 'ar' ? f.ar : f.en;
+          return `<span class="tmj-factor-pill status-${f.status}">${text}</span>`;
+        })
+        .join('');
+    }
+
+    const reasonEl = document.getElementById('tmj-reason-text');
+    if (reasonEl) {
+      reasonEl.textContent = state.lang === 'ar' ? pairEval.reasonAr : pairEval.reasonEn;
+    }
+
+    const adviceEl = document.getElementById('tmj-advice-text');
+    if (adviceEl) {
+      if (state.beatComplexityMode === 'exact') {
+        adviceEl.textContent = state.lang === 'ar' ? pairEval.adviceAr : pairEval.adviceEn;
+      } else if (state.beatComplexityMode === '3month') {
+        adviceEl.textContent =
+          state.lang === 'ar'
+            ? 'الوضع المبسط شغال دلوقتي: شيلنا النوت الشبحية (g) ونقلنا ضربات البيز الفرعية (e/a) على عدات الهاي هات الأساسية مع الحفاظ على الكراش والسنير والفلات.'
+            : '3-Month Simplified is active: ghost notes (g) are removed, offbeat 16th kicks (e/a) are anchored to 8th-note Hi-Hats, and fast fills are smoothed into countable 8th-note tom cascades.';
+      } else {
+        adviceEl.textContent =
+          state.lang === 'ar'
+            ? 'وضع الإيقاع الثابت شغال دلوقتي: كل موازير الجروف بقت ماشية بإيقاع 8th واحد ثابت (CB/XB - X - XS - X - XB - XB - XS - X) عشان الإيقاع ميتغيرش فجأة وإنت بتعزف.'
+            : 'Steady Lock Beat is active: every groove bar now locks to one unchanging 8th-note pattern (CB/XB - X - XS - X - XB - XB - XS - X) so the beat never changes unexpectedly.';
+      }
+    }
+
+    const autoFixBtn = document.getElementById('btn-tmj-autofix');
+    if (autoFixBtn) {
+      autoFixBtn.classList.toggle('is-adapted', state.beatComplexityMode !== 'exact');
+      if (state.beatComplexityMode === 'exact') {
+        autoFixBtn.textContent =
+          state.lang === 'ar' ? 'تبسيط الإيقاع لمستوى ٣ شهور' : 'Adapt for 3-Month Drummer';
+      } else if (state.beatComplexityMode === '3month') {
+        autoFixBtn.textContent =
+          state.lang === 'ar' ? 'تثبيت إيقاع واحد ثابت' : 'Lock Steady 8th Beat';
+      } else {
+        autoFixBtn.textContent =
+          state.lang === 'ar' ? 'إرجاع التابه الأصلية' : 'Restore Exact Song Tab';
+      }
+    }
+  }
+
+  // ==========================================================================
   // LIVE SONGSTERR SEARCH & ON-DEMAND TRACK FETCHER ("SUGGEST ANY TRACK!")
   // ==========================================================================
 
@@ -1783,7 +2044,7 @@ document.addEventListener('DOMContentLoaded', () => {
           lessonId: l.id,
           songId: l.songsterrId,
           artist: l.band,
-          title: l.title.split('—')[0].trim(),
+          title: getShortSongTitle(l.title),
           bpm: l.targetBpm,
           isLocal: true
         }));
@@ -1858,7 +2119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-fetch-full-song-parts').addEventListener('click', async () => {
       const lesson = window.CURRICULUM_LESSONS.find((l) => l.id === state.currentLessonId);
       if (lesson) {
-        const cleanSongTitle = lesson.title.split('—')[0].trim();
+        const cleanSongTitle = getShortSongTitle(lesson.title);
         await fetchAndImportSongById(null, lesson.id, `${lesson.band} ${cleanSongTitle}`);
       }
     });
@@ -1990,7 +2251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         songsterrId: data.songId,
         category: 'nu-metal',
         band: data.artist,
-        title: `${data.title} — Real Drum Track (${(data.allBars || []).length || data.parts.length} Bars)`,
+        title: `${data.title}: Real Drum Track (${(data.allBars || []).length || data.parts.length} Bars)`,
         titleAr: `${data.artist} - ${data.title} (تابه الدرامز الكاملة)`,
         startBpm: data.startBpm,
         targetBpm: data.targetBpm,
@@ -2033,6 +2294,19 @@ document.addEventListener('DOMContentLoaded', () => {
       barsMap.get(step.barIndex).push({ step, globalIdx });
     });
 
+    const modeSuffixEn =
+      state.beatComplexityMode === '3month'
+        ? ' · 3-MONTH SIMPLIFIED'
+        : state.beatComplexityMode === 'steady'
+        ? ' · STEADY LOCK BEAT'
+        : '';
+    const modeSuffixAr =
+      state.beatComplexityMode === '3month'
+        ? ' · مبسطة لـ ٣ شهور'
+        : state.beatComplexityMode === 'steady'
+        ? ' · إيقاع ثابت'
+        : '';
+
     barsMap.forEach((items, barIdx) => {
       const barBlock = document.createElement('div');
       barBlock.className = 'letter-bar-block';
@@ -2057,15 +2331,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const badgeText = !hasFill
         ? state.lang === 'ar'
-          ? `المازورة ${realBarNum}${markerLabel}: الجروف (Groove)`
-          : `BAR ${realBarNum}${markerLabel} — GROOVE`
+          ? `المازورة ${realBarNum}${markerLabel}: الجروف (Groove)${modeSuffixAr}`
+          : `BAR ${realBarNum}${markerLabel}: GROOVE${modeSuffixEn}`
         : state.lang === 'ar'
-        ? `المازورة ${realBarNum}${markerLabel}: الفيل والرجوع على CB`
-        : `BAR ${realBarNum}${markerLabel} — FILL ➔ LAND ON CB (BEAT 1)`;
+        ? `المازورة ${realBarNum}${markerLabel}: الفيل والرجوع على CB${modeSuffixAr}`
+        : `BAR ${realBarNum}${markerLabel}: FILL ➔ LAND ON CB (BEAT 1)${modeSuffixEn}`;
 
       barHeader.innerHTML = `
         <span class="bar-badge ${hasFill ? 'fill-badge' : 'groove-badge'}">${badgeText}</span>
-        <span class="one-line-inline">${activeTokensOnly.join(' – ')}${hasFill ? '  ➔ 🎯 CB' : ''}</span>
+        <span class="one-line-inline">${activeTokensOnly.join(' - ')}${hasFill ? '  ➔ 🎯 CB' : ''}</span>
       `;
       barBlock.appendChild(barHeader);
 
@@ -2082,12 +2356,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (step.isLandingStep) card.classList.add('is-landing-step');
         if (step.drums.length === 0) card.classList.add('is-rest-step');
 
+        const trickyInfo =
+          state.beatComplexityMode === 'exact' && window.isStepTrickyForThreeMonth
+            ? window.isStepTrickyForThreeMonth(step, globalIdx, state.activeSteps)
+            : { tricky: false };
+
+        if (trickyInfo.tricky) {
+          card.classList.add('is-3m-tricky-step');
+          card.title = state.lang === 'ar' ? trickyInfo.reasonAr : trickyInfo.reasonEn;
+        }
+
+        const trickyFlagHtml = trickyInfo.tricky
+          ? `<span class="step-3m-flag">${trickyInfo.code}</span>`
+          : '';
+
         const plainDesc = window.getDrumDescNames
           ? window.getDrumDescNames(step.drums, state.lang)
           : '';
 
         card.innerHTML = `
-          <div class="step-count-row"><span class="step-count-label">${step.count}</span></div>
+          <div class="step-count-row"><span class="step-count-label">${step.count}</span>${trickyFlagHtml}</div>
           <div class="step-token-main">${step.token}</div>
           <div class="step-desc-row" title="${plainDesc}">${plainDesc}</div>
           <div class="step-sticking-row">${step.sticking || '·'}</div>
@@ -2480,7 +2768,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const phrasePill = document.getElementById('live-phrase-banner');
         if (phrasePill) {
           phrasePill.className = 'live-status-pill status-fill';
-          phrasePill.textContent = `🥢 COUNT-IN: ${b} / 4 — GET STICKS READY!`;
+          phrasePill.textContent = `🥢 COUNT-IN: ${b} / 4 : GET STICKS READY!`;
         }
       }, (b - 1) * beatMs);
       countInState.timers.push(tid);
@@ -2684,10 +2972,22 @@ document.addEventListener('DOMContentLoaded', () => {
       item.className = `lesson-card-item ${lesson.id === state.currentLessonId ? 'selected-lesson' : ''}`;
       const isMastered = !!state.masteredLessons[lesson.id];
 
+      const diff = window.evaluateThreeMonthDifficulty
+        ? window.evaluateThreeMonthDifficulty(lesson.bars, lesson.targetBpm, state.lang)
+        : null;
+      const diffBadgeHtml = diff
+        ? `<span class="lc-3m-badge level-${diff.level}" title="${
+            state.lang === 'ar' ? diff.badgeAr : diff.badgeEn
+          }">${state.lang === 'ar' ? diff.shortAr : diff.shortEn}</span>`
+        : '';
+
       item.innerHTML = `
         <div class="lc-top">
           <span class="lc-cat-tag">${lesson.band}</span>
-          <span class="lc-bpm-tag">${lesson.targetBpm} BPM ${isMastered ? '✅' : ''}</span>
+          <span class="lc-top-right">
+            ${diffBadgeHtml}
+            <span class="lc-bpm-tag">${lesson.targetBpm} BPM ${isMastered ? '✅' : ''}</span>
+          </span>
         </div>
         <div class="lc-title">${state.lang === 'ar' && lesson.titleAr ? lesson.titleAr : lesson.title}</div>
       `;
@@ -3096,13 +3396,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let focusTipEn = '';
     let focusTipAr = '';
     if (md.B > md.S && md.B >= 2) {
-      focusTipEn = `Focus on your <strong>Right Foot Kick (<code>B</code>)</strong> — missed on beats <code>${coachState.passMissedCounts.slice(0, 2).join(', ')}</code>.`;
+      focusTipEn = `Focus on your <strong>Right Foot Kick (<code>B</code>)</strong>: missed on beats <code>${coachState.passMissedCounts.slice(0, 2).join(', ')}</code>.`;
       focusTipAr = `ركز على <strong>البيز درام برجلك اليمين (<code>B</code>)</strong> في العدات <code>${coachState.passMissedCounts.slice(0, 2).join(', ')}</code>.`;
     } else if (md.S >= 2) {
-      focusTipEn = `Anchor your <strong>Snare backbeat (<code>S</code> on Beats 2 &amp; 4)</strong> — missed on <code>${coachState.passMissedCounts.slice(0, 2).join(', ')}</code>.`;
-      focusTipAr = `ثبّت <strong>السنير (<code>S</code> في العدات 2 و 4)</strong> — فاتتك في <code>${coachState.passMissedCounts.slice(0, 2).join(', ')}</code>.`;
+      focusTipEn = `Anchor your <strong>Snare backbeat (<code>S</code> on Beats 2 &amp; 4)</strong>: missed on <code>${coachState.passMissedCounts.slice(0, 2).join(', ')}</code>.`;
+      focusTipAr = `ثبّت <strong>السنير (<code>S</code> في العدات 2 و 4)</strong>: فاتتك في <code>${coachState.passMissedCounts.slice(0, 2).join(', ')}</code>.`;
     } else if (md.TOM >= 2) {
-      focusTipEn = `Smooth out the <strong>Tom Fill (<code>T1 → T2 → FT</code>)</strong> — count 16ths evenly and land on <code>CB</code> Beat 1!`;
+      focusTipEn = `Smooth out the <strong>Tom Fill (<code>T1 → T2 → FT</code>)</strong>: count 16ths evenly and land on <code>CB</code> Beat 1!`;
       focusTipAr = `احسب عدات <strong>الفيل على التومات (<code>T1 → T2 → FT</code>)</strong> بهدوء وارجع على <code>CB</code> في عدة 1!`;
     } else if (avgMs < -40) {
       focusTipEn = `You're <strong>rushing ahead of the beat (${avgMs}ms early)</strong>. Take a breath and wait for the click!`;
@@ -3331,8 +3631,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       setCoachGuidanceMessage(
         state.lang === 'ar'
-          ? '🎙️ <strong>المايك شغال دلوقتي!</strong> اضغط <strong>▶ PLAY</strong> وابدأ اعزف على الدرامز أو الباد — المربعات هتنور أخضر وأصفر وأحمر وهتصححلك أخطاءك!'
-          : '🎙️ <strong>Microphone Active!</strong> Press <strong>▶ PLAY</strong> and play your drums or practice pad — each box below will grade your hits live!'
+          ? '🎙️ <strong>المايك شغال دلوقتي!</strong> اضغط <strong>▶ PLAY</strong> وابدأ اعزف على الدرامز أو الباد: المربعات هتنور أخضر وأصفر وأحمر وهتصححلك أخطاءك!'
+          : '🎙️ <strong>Microphone Active!</strong> Press <strong>▶ PLAY</strong> and play your drums or practice pad: each box below will grade your hits live!'
       );
 
       const freqData = new Uint8Array(analyser.frequencyBinCount);

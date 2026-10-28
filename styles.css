@@ -2811,10 +2811,293 @@ button.legend-item-card {
   .walk-mini-btn,
   .btn-topbar-guide,
   .btn-lang-switch,
-  .btn-search-fetch {
+  .btn-search-fetch,
+  .tmj-mode-btn,
+  .tmj-autofix-btn {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
+
+  .tmj-top-row,
+  .tmj-mode-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tmj-segmented-switch {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   3-MONTH DRUMMER DIFFICULTY JUDGE & BEAT SIMPLIFIER
+   ============================================================================ */
+
+.three-month-judge-panel {
+  background: #101622;
+  border: 1px solid #26324d;
+  border-left: 4px solid #06b6d4;
+  border-radius: 9px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.three-month-judge-panel.level-easy {
+  border-left-color: #10b981;
+}
+
+.three-month-judge-panel.level-stretch {
+  border-left-color: #f59e0b;
+}
+
+.three-month-judge-panel.level-hard {
+  border-left-color: #ef4444;
+}
+
+.three-month-judge-panel.mode-3month,
+.three-month-judge-panel.mode-steady {
+  border-left-color: #34d399;
+  background: #0d1922;
+}
+
+.tmj-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tmj-verdict-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tmj-verdict-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  background: #061824;
+  color: #67e8f9;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+}
+
+.tmj-verdict-badge.level-easy {
+  background: #052e16;
+  color: #6ee7b7;
+  border-color: #10b981;
+}
+
+.tmj-verdict-badge.level-stretch {
+  background: #2b1d04;
+  color: #fde68a;
+  border-color: #f59e0b;
+}
+
+.tmj-verdict-badge.level-hard {
+  background: #450a0a;
+  color: #fecaca;
+  border-color: #ef4444;
+}
+
+.tmj-song-overall-pill {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  background: #172033;
+  border: 1px solid #2b3958;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+.tmj-mode-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tmj-mode-label {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.tmj-segmented-switch {
+  display: inline-flex;
+  background: #090d16;
+  border: 1px solid #2b3958;
+  border-radius: 7px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.tmj-mode-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #cbd5e1;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.tmj-mode-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tmj-mode-btn.active {
+  background: #06b6d4;
+  color: #090b10;
+  border-color: #67e8f9;
+}
+
+.tmj-autofix-btn {
+  background: #fbbf24;
+  color: #090b10;
+  border: 1px solid #fde047;
+  border-radius: 6px;
+  padding: 5px 11px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: filter 0.12s, background 0.12s;
+}
+
+.tmj-autofix-btn:hover {
+  filter: brightness(1.08);
+}
+
+.tmj-autofix-btn.is-adapted {
+  background: #052e16;
+  color: #6ee7b7;
+  border-color: #10b981;
+}
+
+.tmj-factors-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tmj-factor-pill {
+  font-size: 0.71rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: #161f33;
+  color: #e2e8f0;
+  border: 1px solid #283655;
+}
+
+.tmj-factor-pill.status-ok {
+  background: #052e16;
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.tmj-factor-pill.status-warn {
+  background: #2b1d04;
+  color: #fde68a;
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
+.tmj-factor-pill.status-hard {
+  background: #450a0a;
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.tmj-reason-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 14px;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.tmj-reason-text {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.tmj-advice-text {
+  color: #67e8f9;
+  font-weight: 700;
+}
+
+/* SIDEBAR 3-MONTH BADGE */
+.lc-top-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lc-3m-badge {
+  font-size: 0.63rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.01em;
+}
+
+.lc-3m-badge.level-easy {
+  background: #052e16;
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.55);
+}
+
+.lc-3m-badge.level-stretch {
+  background: #2b1d04;
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.55);
+}
+
+.lc-3m-badge.level-hard {
+  background: #450a0a;
+  color: #fecaca;
+  border: 1px solid rgba(239, 68, 68, 0.6);
+}
+
+/* STEP CARD TRICKY SUBDIVISION FLAG */
+.step-letter-card.is-3m-tricky-step {
+  border-color: rgba(245, 158, 11, 0.75);
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.35);
+}
+
+.step-count-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.step-3m-flag {
+  font-size: 0.54rem;
+  font-weight: 900;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: #450a0a;
+  color: #fde68a;
+  border: 1px solid #f59e0b;
+  line-height: 1.25;
 }

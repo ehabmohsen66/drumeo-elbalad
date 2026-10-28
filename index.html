@@ -31,7 +31,7 @@
   <meta id="seo-twitter-title" name="twitter:title" content="Drumeo Al-Balad | 3-Month Metal &amp; 2000s Drum Learning System" />
   <meta id="seo-twitter-desc" name="twitter:description" content="Learn 40 rock, nu-metal, and thrash songs plus warmups, grooves, and fills using synchronized letter notation on a 5-piece single-kick drum kit." />
 
-  <link rel="stylesheet" href="styles.css?v=20" />
+  <link rel="stylesheet" href="styles.css?v=21" />
 
   <!-- Schema.org Structured Data for Search Engines (WebApplication, Course, ItemList, FAQPage) -->
   <script type="application/ld+json">
@@ -234,6 +234,7 @@
       <!-- SUB-FILTERS FOR SONG TRACKS -->
       <div id="song-band-filters" class="filter-pills-wrap">
         <button class="cat-filter-btn active" data-cat="all-songs">All Songs</button>
+        <button id="btn-filter-3month-easy" class="cat-filter-btn" data-cat="3month-easy" title="Show songs that are easiest to play at 3 months">3-Month Ready</button>
         <button class="cat-filter-btn" data-cat="linkin-park">Linkin Park</button>
         <button class="cat-filter-btn" data-cat="nu-metal">2000s Nu-Metal</button>
         <button class="cat-filter-btn" data-cat="soad-deftones">SOAD &amp; Deftones</button>
@@ -432,6 +433,40 @@
         <div class="inline-coach-strip">
           <span class="coach-badge">💡 TIP</span>
           <span id="coach-tip-text" class="coach-inline-text"></span>
+        </div>
+
+        <!-- 3-MONTH DRUMMER DIFFICULTY JUDGE & BEAT ADAPTER -->
+        <div id="three-month-judge-panel" class="three-month-judge-panel" aria-live="polite">
+          <div class="tmj-top-row">
+            <div class="tmj-verdict-group">
+              <span id="tmj-verdict-badge" class="tmj-verdict-badge level-stretch">3-MONTH CHECK: STRETCH</span>
+              <span id="tmj-song-overall-pill" class="tmj-song-overall-pill">Full Track: 3M Stretch</span>
+              <div id="tmj-factors-row" class="tmj-factors-row"></div>
+            </div>
+
+            <div class="tmj-mode-controls" role="group" aria-label="Beat Complexity Mode for 3-Month Drummer">
+              <span id="tmj-mode-label" class="tmj-mode-label">Beat Mode:</span>
+              <div class="tmj-segmented-switch">
+                <button id="btn-beat-mode-exact" type="button" class="tmj-mode-btn active" data-beat-mode="exact" title="Show every exact 16th kick, ghost note, and fill from the recorded tab">
+                  1. Exact Song Tab
+                </button>
+                <button id="btn-beat-mode-3month" type="button" class="tmj-mode-btn" data-beat-mode="3month" title="Strip ghost notes, move offbeat e/a kicks onto 8th-note Hi-Hat hits, and simplify fills">
+                  2. 3-Month Simplified
+                </button>
+                <button id="btn-beat-mode-steady" type="button" class="tmj-mode-btn" data-beat-mode="steady" title="Lock the entire song to one unchanging 8th-note groove + simple 4-hit fill so the beat never shifts">
+                  3. Steady Lock Beat
+                </button>
+              </div>
+              <button id="btn-tmj-autofix" type="button" class="tmj-autofix-btn" title="Switch to 3-Month Simplified Beat and slow tempo if needed">
+                Adapt for 3-Month Drummer
+              </button>
+            </div>
+          </div>
+
+          <div class="tmj-reason-row">
+            <span id="tmj-reason-text" class="tmj-reason-text"></span>
+            <span id="tmj-advice-text" class="tmj-advice-text"></span>
+          </div>
         </div>
 
         <!-- LIVE DRUM PLAY-CHECKER & INTERACTIVE COACH -->
